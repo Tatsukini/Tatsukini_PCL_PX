@@ -224,6 +224,7 @@
     <Compile Include="Modules\Minecraft\ModJava.vb" />
     <Compile Include="Modules\Resource\LocalResourceLoaders.vb" />
     <Compile Include="Modules\Minecraft\ModModpack.vb" />
+    <Compile Include="Modules\Minecraft\ModModpackUpgrade.vb" />
     <Compile Include="Modules\Minecraft\ModServerTool.vb" />
     <Compile Include="Modules\ModTerracotta.vb" />
     <Compile Include="Modules\ThirdParty\DragHelper.vb" />
@@ -261,9 +262,11 @@
     <Compile Include="Controls\MyTextButton.vb" />
     <Compile Include="GlobalSuppressions.vb" />
     <Compile Include="Modules\Minecraft\ModCrash.vb" />
+    <Compile Include="Modules\Minecraft\ModModGraph.vb" />
     <Compile Include="Modules\ModMusic.vb" />
     <Compile Include="Modules\ModDevelop.vb" />
     <Compile Include="Modules\Minecraft\ModWatcher.vb" />
+    <Compile Include="Modules\Minecraft\ModHardware.vb" />
     <Compile Include="Modules\ModSecret.vb" />
     <Compile Include="Pages\PageDownload\Resource\PageResource.xaml.vb">
       <DependentUpon>PageResource.xaml</DependentUpon>
@@ -341,6 +344,10 @@
     </Compile>
     <Compile Include="Pages\PageInstance\PageInstanceOverall.xaml.vb">
       <DependentUpon>PageInstanceOverall.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Pages\PageInstance\FrmModpackUpgrade.xaml.vb">
+      <DependentUpon>FrmModpackUpgrade.xaml</DependentUpon>
+      <SubType>Code</SubType>
     </Compile>
     <Compile Include="Pages\PageInstance\PageInstanceSetup.xaml.vb">
       <DependentUpon>PageInstanceSetup.xaml</DependentUpon>
@@ -483,6 +490,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="FrmModGraph.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Compile Include="Application.xaml.vb">
       <DependentUpon>Application.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -518,6 +529,10 @@
     </Compile>
     <Compile Include="FrmLiveLog.xaml.vb">
       <DependentUpon>FrmLiveLog.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="FrmModGraph.xaml.vb">
+      <DependentUpon>FrmModGraph.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
 
@@ -702,6 +717,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Pages\PageInstance\PageInstanceOverall.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Pages\PageInstance\FrmModpackUpgrade.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

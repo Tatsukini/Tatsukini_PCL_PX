@@ -20,6 +20,9 @@ Public Class PageSetupLaunch
         Dim timer As New Threading.DispatcherTimer With {.Interval = New TimeSpan(0, 0, 0, 1)}
         AddHandler timer.Tick, AddressOf RefreshRam
         timer.Start()
+
+        '滑动条显示真实数值
+        SliderHardwareLoad()
     End Sub
     Public Sub Refresh()
         Try
@@ -27,6 +30,7 @@ Public Class PageSetupLaunch
             UpdateSkinType()
             UpdateRamType()
             UpdateJavaList()
+            SoundHardwareRefresh()
         Catch ex As NullReferenceException
             Logger.Error(ex, "启动设置项存在异常，已被自动重置", LogBehavior.Alert)
             Reset()
@@ -475,6 +479,121 @@ PreFin:
     Private Sub ComboArgumentIndie_SelectionChanged(sender As Object, e As SelectionChangedEventArgs) Handles ComboArgumentIndieV2.SelectionChanged
         If AniControlEnabled <> 0 Then Return
         MyMsgBox("本设置仅会对之后新安装的版本生效。" & vbCrLf & "如果要修改已安装的版本的隔离方式，请在它的版本独立设置中调整。")
+    End Sub
+
+#End Region
+
+#Region "启动音效与硬件检测"
+
+    '当前使用的音效文件，未导入或文件已丢失时返回 Nothing
+    Private Function SoundPath() As String
+        Dim Address As String = Settings.Get(Of String)("LaunchSoundFile")
+        If Address = "" OrElse Not FileUtils.Exists(Address) Then Return Nothing
+        Return Address
+    End Function
+    ''' <summary>
+    ''' 按当前设置刷新本页的音效与硬件检测部分。
+    ''' </summary>
+    Public Sub SoundHardwareRefresh()
+        Dim Address = SoundPath()
+        If Address Is Nothing Then
+            LabSoundFile.Text = "尚未导入音效文件"
+            BtnSoundPreview.Visibility = Visibility.Collapsed
+            BtnSoundClear.Visibility = Visibility.Collapsed
+        Else
+            LabSoundFile.Text = PathUtils.GetLastPart(Address)
+            BtnSoundPreview.Visibility = Visibility.Visible
+            BtnSoundClear.Visibility = Visibility.Visible
+        End If
+        PanHardwareDetail.Visibility = If(CheckHardwareCheck.Checked, Visibility.Visible, Visibility.Collapsed)
+        SliderHardwareDisk.IsEnabled = CheckHardwareDisk.Checked
+    End Sub
+
+    '音效导入
+    Private Sub BtnSoundImport_Click(sender As Object, e As EventArgs) Handles BtnSoundImport.Click
+        SoundImport()
+    End Sub
+    Private Sub CheckSoundPlay_Preview(sender As Object, e As RouteEventArgs) Handles CheckSoundPlay.PreviewChange
+        If Not (AniControlEnabled = 0 AndAlso e.RaiseByMouse) Then Return
+        '勾选时还没有音效文件，直接开始导入
+        If Not CheckSoundPlay.Checked AndAlso SoundPath() Is Nothing Then
+            SoundImport()
+            e.Handled = True
+        End If
+    End Sub
+    Private Sub SoundImport()
+        Dim FileName As String = Dialogs.SelectFile("选择音效", False, filter:={({"mp3", "wav", "flac", "m4a", "wma", "aiff"}, "常用音频文件")}).FirstOrDefault()
+        If String.IsNullOrEmpty(FileName) Then Return
+        '限制时长，避免音效一直占着后台
+        Dim Duration As Double
+        Try
+            Duration = SoundGetDuration(FileName)
+        Catch ex As Exception
+            Logger.Error(ex, $"读取音效时长失败（{FileName}）", LogBehavior.Alert)
+            Hint("无法读取该音频文件，请换一个格式试试。", HintType.Red)
+            Return
+        End Try
+        If Duration > 5 Then
+            Hint($"该音频时长为 {Duration.ToString("F1")} 秒，超过了 5 秒的限制，请先裁剪后再导入。", HintType.Red)
+            Return
+        End If
+        '复制到 PCL 文件夹下，以避免源文件被移动或重命名；失败则直接使用原文件
+        Dim Address As String = FileName
+        Try
+            If Not PathUtils.IsSame(Path.GetDirectoryName(FileName), SoundFolder().TrimEnd("\"c)) Then
+                DirectoryUtils.Create(SoundFolder())
+                Dim Target As String = SoundFolder() & PathUtils.GetLastPart(FileName)
+                FileUtils.Copy(FileName, Target)
+                Address = Target
+            End If
+        Catch ex As Exception
+            Logger.Error(ex, "导入音效失败，将直接使用原文件位置", LogBehavior.Alert)
+            Address = FileName
+        End Try
+        Settings.Set("LaunchSoundFile", Address)
+        Hint("音效已导入：" & PathUtils.GetLastPart(Address), HintType.Green, False)
+        If Not CheckSoundPlay.Checked Then CheckSoundPlay.SetChecked(True, False)
+        SoundHardwareRefresh()
+    End Sub
+    Private Sub BtnSoundPreview_Click(sender As Object, e As EventArgs) Handles BtnSoundPreview.Click
+        Dim Address = SoundPath()
+        If Address Is Nothing Then Return
+        SoundPlay(Address)
+    End Sub
+    Private Sub BtnSoundClear_Click(sender As Object, e As EventArgs) Handles BtnSoundClear.Click
+        If MyMsgBox("即将移除启动音效，不会删除音频文件。是否确定？", "移除音效", "确定", "取消") = 2 Then Return
+        Settings.Set("LaunchSoundFile", "")
+        If CheckSoundPlay.Checked Then CheckSoundPlay.SetChecked(False, False)
+        Hint("启动音效已移除！", HintType.Green)
+        SoundHardwareRefresh()
+    End Sub
+
+    '硬件检测
+    Private Sub HardwareDetailRefresh() Handles CheckHardwareCheck.Change, CheckHardwareDisk.Change
+        If AniControlEnabled <> 0 Then Return
+        PanHardwareDetail.Visibility = If(CheckHardwareCheck.Checked, Visibility.Visible, Visibility.Collapsed)
+        SliderHardwareDisk.IsEnabled = CheckHardwareDisk.Checked
+    End Sub
+    Private Sub SliderHardwareLoad()
+        SliderHardwareRam.GetHintText = Function(v) (v + 1) & " GB"
+        SliderHardwareCpu.GetHintText = Function(v) (v + 50) & "%"
+        SliderHardwareDisk.GetHintText = Function(v) (v + 1) & " GB"
+    End Sub
+    Private Sub BtnHardwareCheck_Click(sender As Object, e As EventArgs) Handles BtnHardwareCheck.Click
+        RunInNewThread(
+        Sub()
+            Dim Warnings = HardwareDetect()
+            Dim Status = HardwareStatusText()
+            If Warnings.Count = 0 Then
+                MyMsgBox(Status & vbCrLf & vbCrLf & "各项指标都在阈值之内，没有问题。", "硬件检测")
+            Else
+                Dim WarnMsg As String = Status & vbCrLf & vbCrLf
+                For Each WarnText In Warnings
+                    WarnMsg &= " · " & WarnText & vbCrLf & vbCrLf
+                Next
+                MyMsgBox(WarnMsg.TrimEnd(), "硬件检测", "知道了")
+            End If
+        End Sub, "硬件检测")
     End Sub
 
 #End Region

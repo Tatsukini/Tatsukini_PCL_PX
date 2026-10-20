@@ -703,6 +703,19 @@ Done:
     Private Function NormalizeModName(Name As String) As String
         Return New String(Name.Lower.Where(Function(c) Char.IsLetterOrDigit(c)).ToArray)
     End Function
+    ''' <summary>
+    ''' 分析结果中点名的 Mod 文件或名称，供模组图形化检查高亮可疑节点使用。
+    ''' </summary>
+    Public ReadOnly Property ModSuspectNames As List(Of String)
+        Get
+            Dim Result As New List(Of String)
+            For Each Reason In CrashReasons
+                If GetCategory(Reason.Key) <> CrashCategory.Mod问题 Then Continue For
+                Result.AddRange(Reason.Value)
+            Next
+            Return Result.Distinct.ToList
+        End Get
+    End Property
 
     '具体的分析代码
     ''' <summary>

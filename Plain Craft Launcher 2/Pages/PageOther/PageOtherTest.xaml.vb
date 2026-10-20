@@ -11,6 +11,9 @@ Public Class PageOtherTest
         End If
         CheckMemoryKill.Checked = Settings.Get(Of Boolean)("MemoryOptimizeKillEnabled")
         ComboMemoryMode.SelectedIndex = Settings.Get(Of Integer)("MemoryOptimizeMode")
+        CheckModGraphEnable.Checked = Settings.Get(Of Boolean)("ToolModGraphEnable")
+        CheckModGraphAutoPopup.Checked = Settings.Get(Of Boolean)("ToolModGraphAutoPopup")
+        RefreshModGraphEnable()
         IsLoad = False
         RefreshMemoryInfo()
     End Sub
@@ -219,6 +222,126 @@ Public Class PageOtherTest
             Logger.Warn(ex, "获取内存信息失败")
         End Try
     End Sub
+
+#End Region
+
+#Region "模组报错图形化检查"
+
+    Private Shared ModGraphScanning As Boolean = False
+
+    ''' <summary>
+    ''' 按功能开关显示按钮或显示提示文字。
+    ''' </summary>
+    Private Sub RefreshModGraphEnable()
+        If CheckModGraphEnable Is Nothing OrElse PanModGraphButtons Is Nothing Then Return
+        If CheckModGraphEnable.Checked Then
+            PanModGraphButtons.Visibility = Visibility.Visible
+            LabModGraphDisabled.Visibility = Visibility.Collapsed
+        Else
+            PanModGraphButtons.Visibility = Visibility.Collapsed
+            LabModGraphDisabled.Visibility = Visibility.Visible
+        End If
+    End Sub
+
+    Private Sub CheckModGraphEnable_Change(sender As Object, user As Boolean) Handles CheckModGraphEnable.Change
+        '设置项由 SettingService 自动写入，这里只需要刷新界面
+        RefreshModGraphEnable()
+    End Sub
+
+    Private Sub BtnModGraphScan_Click(sender As Object, e As MouseButtonEventArgs) Handles BtnModGraphScan.Click
+        If Not CheckModGraphEnable.Checked Then
+            Hint("模组图形化检查已关闭，请先勾选 启用模组图形化检查。", HintType.Red)
+            Return
+        End If
+        If McInstanceSelected Is Nothing Then
+            Hint("请先在 启动 页选择一个版本。", HintType.Red)
+            Return
+        End If
+        RescanModGraph(McInstanceSelected, Nothing)
+    End Sub
+
+    Private Sub BtnModGraphCrash_Click(sender As Object, e As MouseButtonEventArgs) Handles BtnModGraphCrash.Click
+        If Not CheckModGraphEnable.Checked Then
+            Hint("模组图形化检查已关闭，请先勾选 启用模组图形化检查。", HintType.Red)
+            Return
+        End If
+        If McInstanceSelected Is Nothing Then
+            Hint("请先在 启动 页选择一个版本。", HintType.Red)
+            Return
+        End If
+        Dim FilePath = Dialogs.SelectFile("选择崩溃日志或错误报告", False, filter:={({"log", "txt", "zip"}, "崩溃日志与错误报告")}).FirstOrDefault
+        If FilePath Is Nothing Then Return
+        RescanModGraph(McInstanceSelected, FilePath)
+    End Sub
+
+    ''' <summary>
+    ''' 扫描该版本的 Mod 并建立依赖图；CrashFilePath 不为空时，再叠加崩溃日志的分析结果。
+    ''' </summary>
+    Public Shared Sub RescanModGraph(Instance As McInstance, CrashFilePath As String)
+        If Instance Is Nothing Then
+            Hint("请先在 启动 页选择一个版本。", HintType.Red)
+            Return
+        End If
+        If ModGraphScanning Then
+            Hint("正在检查模组依赖，请稍候……", HintType.Blue)
+            Return
+        End If
+        ModGraphScanning = True
+        RunInNewThread(
+        Sub()
+            Try
+                Hint($"正在检查 {Instance.Name} 的模组依赖……", HintType.Blue)
+                Dim Nodes = ModGraphScan(Instance)
+                Dim Links = ModGraphBuild(Nodes, GetModGraphVersionName(Instance))
+                Dim IsCrashAnalyzed As Boolean = False
+                If CrashFilePath IsNot Nothing Then
+                    Try
+                        Dim Analyzer As New CrashAnalyzer(Instance)
+                        Analyzer.Import(CrashFilePath)
+                        If Analyzer.Prepare() Then
+                            Analyzer.Analyze()
+                            ModGraphMergeCrash(Nodes, Analyzer.ModSuspectNames)
+                            IsCrashAnalyzed = True
+                        Else
+                            Hint("所选文件中没有可以用于分析的内容，只显示模组之间的依赖关系。", HintType.Red)
+                        End If
+                    Catch ex As Exception
+                        Logger.Error(ex, "模组图形化检查中分析崩溃日志失败")
+                        Hint("分析崩溃日志失败：" & ex.Message, HintType.Red)
+                    End Try
+                End If
+                Dim ProblemCount As Integer = 0
+                Dim SuspectCount As Integer = 0
+                For Each CheckNode In Nodes
+                    If CheckNode.HasProblem Then ProblemCount += 1
+                    If CheckNode.CrashSuspect Then SuspectCount += 1
+                Next
+                '分析过崩溃日志时，未勾选自动打开就先问一次；单纯检查依赖则直接打开窗口
+                If IsCrashAnalyzed AndAlso Not Settings.Get(Of Boolean)("ToolModGraphAutoPopup") Then
+                    If MyMsgBox($"已经读完了：共 {Nodes.Count} 个 Mod，其中 {ProblemCount} 个存在疑点，崩溃日志中提到 {SuspectCount} 个。" & vbCrLf & vbCrLf &
+                                "要现在打开图形化检查窗口吗？", "模组报错图形化检查", "打开窗口", "关闭", HighLight:=True) <> 1 Then Return
+                End If
+                RunInUi(Sub() FrmModGraph.OpenGraph(Instance, Nodes, Links))
+            Catch ex As Exception
+                Logger.Error(ex, "模组依赖图检查失败", LogBehavior.Toast)
+                Hint("模组依赖图检查失败：" & ex.Message, HintType.Red)
+            Finally
+                ModGraphScanning = False
+            End Try
+        End Sub, "模组依赖图检查")
+    End Sub
+
+    ''' <summary>
+    ''' 该版本对应的 Minecraft 版本号，用于判断 Mod 声明的版本范围；无法获取时返回空字符串。
+    ''' </summary>
+    Private Shared Function GetModGraphVersionName(Instance As McInstance) As String
+        Try
+            If Instance.Version IsNot Nothing Then Return Instance.Version.VanillaName
+        Catch ex As Exception
+            Logger.Warn(ex, "获取当前 Minecraft 版本号失败")
+        End Try
+        Return ""
+    End Function
 
 #End Region
 

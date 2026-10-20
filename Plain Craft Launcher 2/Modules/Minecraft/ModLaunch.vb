@@ -244,6 +244,18 @@ NextInner:
         Dim CheckResult As String = ""
         RunInUiWait(Sub() CheckResult = McLoginAble(McLoginInput()))
         If CheckResult <> "" Then Throw New ArgumentException(CheckResult)
+        '硬件预警（保存脚本时不提示，用户可以继续启动）
+        If Settings.Get(Of Boolean)("LaunchHardwareCheck") AndAlso CurrentLaunchOptions?.SaveBatch Is Nothing Then
+            Dim Warnings = HardwareDetect()
+            If Warnings.Count > 0 Then
+                Dim WarnMsg As String = "检测到你的电脑可能带不动 Minecraft：" & vbCrLf & vbCrLf
+                For Each WarnText In Warnings
+                    WarnMsg &= " · " & WarnText & vbCrLf & vbCrLf
+                Next
+                WarnMsg &= "你仍然可以继续启动，只是可能会更卡或启动失败。"
+                If MyMsgBox(WarnMsg.TrimEnd(), "硬件预警", "继续启动", "取消启动") = 2 Then Throw New OperationCanceledException
+            End If
+        End If
         '求赞助
         If BuildType = BuildTypes.Release AndAlso CurrentLaunchOptions?.SaveBatch Is Nothing Then '保存脚本时不提示
             RunInNewThread(
@@ -2190,6 +2202,15 @@ IgnoreCustomSkin:
             RunInUi(Sub() If MusicPause() Then Logger.Info("已根据设置，在启动后暂停音乐播放"))
         ElseIf Settings.Get(Of Boolean)("UiMusicStart") Then
             RunInUi(Sub() If MusicResume() Then Logger.Info("已根据设置，在启动后开始音乐播放"))
+        End If
+
+        '播放启动音效（后台播放，立即返回）
+        If Settings.Get(Of Boolean)("LaunchSoundPlay") Then
+            Dim SoundFile As String = Settings.Get(Of String)("LaunchSoundFile")
+            If SoundFile <> "" AndAlso FileUtils.Exists(SoundFile) Then
+                SoundPlay(SoundFile)
+                McLaunchLog("已播放启动音效：" & PathUtils.GetLastPart(SoundFile))
+            End If
         End If
 
         '启动器可见性

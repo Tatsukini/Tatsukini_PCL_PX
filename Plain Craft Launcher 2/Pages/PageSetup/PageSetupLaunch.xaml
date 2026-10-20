@@ -220,6 +220,68 @@
                     </Grid>
                 </StackPanel>
             </local:MyCard>
+            <local:MyCard x:Name="CardSoundHardware" Margin="0,0,0,15" Title="启动音效与硬件检测" CanSwap="True">
+                <StackPanel Margin="25,40,25,20">
+                    <local:MyCheckBox x:Name="CheckSoundPlay" local:SettingService.Key="LaunchSoundPlay" Height="22" Margin="-1,0,0,8"
+                        Text="启动游戏时播放音效" ToolTip="游戏窗口出现后播放一段音效，它在后台播放，不会拖慢启动。&#xa;若将 “启动器可见性” 设为游戏启动后关闭启动器，音效可能无法完整播放。" />
+                    <Grid Height="35" Margin="0,2,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" SharedSizeGroup="Button" />
+                            <ColumnDefinition Width="Auto" SharedSizeGroup="Button" />
+                            <ColumnDefinition Width="Auto" SharedSizeGroup="Button" />
+                            <ColumnDefinition Width="1*" />
+                        </Grid.ColumnDefinitions>
+                        <local:MyButton x:Name="BtnSoundImport" MinWidth="140" Text="导入音效" Padding="13,0" Margin="0,0,20,0"
+                            ToolTip="导入一个时长不超过 5 秒的音频文件，它会被复制到 PCL\Sounds\ 下。&#xa;支持 MP3、WAV、FLAC、M4A、WMA 等常见格式。" />
+                        <local:MyButton x:Name="BtnSoundPreview" MinWidth="140" Text="试听音效" Padding="13,0" Margin="0,0,20,0" Visibility="Collapsed" Grid.Column="1" />
+                        <local:MyButton x:Name="BtnSoundClear" MinWidth="140" Text="移除音效" Padding="13,0" Margin="0,0,20,0" Visibility="Collapsed" ColorType="Red" Grid.Column="2" />
+                        <TextBlock x:Name="LabSoundFile" Grid.Column="3" VerticalAlignment="Center" Margin="5,0,0,0" TextTrimming="CharacterEllipsis" Opacity="0.5" />
+                    </Grid>
+                    <Rectangle Height="1" Fill="{DynamicResource ColorBrush6}" Margin="0,16,0,14" />
+                    <local:MyCheckBox x:Name="CheckHardwareCheck" local:SettingService.Key="LaunchHardwareCheck" Height="22" Margin="-1,0,0,8"
+                        Text="启动游戏前检测硬件" ToolTip="硬件不达标时，PCL 会在启动前弹窗提醒，你可以选择继续启动。&#xa;内存与 CPU 检测无法关闭，显卡与磁盘检测可以按需开启。" />
+                    <Grid x:Name="PanHardwareDetail" Visibility="Collapsed">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" SharedSizeGroup="Name" />
+                            <ColumnDefinition Width="1*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="22" />
+                            <RowDefinition Height="8" />
+                            <RowDefinition Height="22" />
+                            <RowDefinition Height="8" />
+                            <RowDefinition Height="22" />
+                            <RowDefinition Height="12" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="10" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" VerticalAlignment="Center" HorizontalAlignment="Left" Text="内存阈值" Margin="0,0,25,0" />
+                        <local:MySlider Grid.Row="0" Grid.Column="1" x:Name="SliderHardwareRam" local:SettingService.Key="LaunchHardwareRam" MaxValue="31"
+                            ToolTip="可用内存低于该值时预警。可用内存不足会导致游戏卡顿甚至崩溃。" />
+                        <TextBlock Grid.Row="2" VerticalAlignment="Center" HorizontalAlignment="Left" Text="CPU 阈值" Margin="0,0,25,0" />
+                        <local:MySlider Grid.Row="2" Grid.Column="1" x:Name="SliderHardwareCpu" local:SettingService.Key="LaunchHardwareCpu" MaxValue="49"
+                            ToolTip="整机 CPU 占用高于该值时预警。CPU 忙不过来时，游戏帧率会明显下降。" />
+                        <TextBlock Grid.Row="4" VerticalAlignment="Center" HorizontalAlignment="Left" Text="磁盘阈值" Margin="0,0,25,0" />
+                        <local:MySlider Grid.Row="4" Grid.Column="1" x:Name="SliderHardwareDisk" local:SettingService.Key="LaunchHardwareDiskSize" MaxValue="49"
+                            ToolTip="PCL 所在磁盘剩余空间低于该值时预警。仅在下方开启磁盘检测时生效。" />
+                        <StackPanel Grid.Row="6" Grid.ColumnSpan="2">
+                            <local:MyCheckBox x:Name="CheckHardwareRam" Height="24" Checked="True" IsEnabled="False" Text="可用内存不足时预警"
+                                ToolTip="内存检测无法关闭，它总是参与预警。" />
+                            <local:MyCheckBox x:Name="CheckHardwareCpu" Height="24" Checked="True" IsEnabled="False" Text="CPU 占用过高时预警"
+                                ToolTip="CPU 检测无法关闭，它总是参与预警。" />
+                            <local:MyCheckBox x:Name="CheckHardwareGpu" local:SettingService.Key="LaunchHardwareGpu" Height="24" Text="显卡驱动过旧时预警"
+                                ToolTip="额外查询显卡型号与驱动发布时间，驱动超过 4 年或使用 Windows 基本显示驱动时预警。" />
+                            <local:MyCheckBox x:Name="CheckHardwareDisk" local:SettingService.Key="LaunchHardwareDisk" Height="24" Text="磁盘剩余空间不足时预警"
+                                ToolTip="检查 PCL 所在磁盘的剩余空间，空间不足会导致下载失败甚至存档损坏。" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="8" Grid.ColumnSpan="2">
+                            <local:MyButton x:Name="BtnHardwareCheck" MinWidth="140" Text="立即检测" Padding="13,0" HorizontalAlignment="Left"
+                                ToolTip="按当前阈值读取一次硬件数据，不会影响启动流程。" />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </local:MyCard>
             <local:MyCard Margin="0,0,0,15" Title="高级选项" IsSwapped="True" CanSwap="True">
                 <Grid Margin="25,40,25,15">
                     <Grid.ColumnDefinitions>

@@ -74,6 +74,39 @@
 - `FormMain.xaml.vb`：更新日志里把「删除：为遵守相关法律法规，PCL 暂时不再提供 MC 下载功能」替换为「新增：恢复 Minecraft 本体与整合包的下载、安装功能」。
 - ⚠️ 这是与上游意图相反的一处改动，风险见 README 的「已知的合规风险」表。
 
+### 11. 启动播放音效（设置 → 启动）
+- `Modules/ModMusic.vb`：新增 `SoundFolder()`（`Paths.Base & "PCL\Sounds\"`）、`SoundGetDuration()`（先用 NAudio 的 `AudioFileReader`，失败回退 `MediaFoundationReader`）、`SoundPlay()`（新线程一次性播放，不干扰背景音乐的状态与音量）。
+- `Pages/PageSetup/PageSetupLaunch.xaml(.vb)`：新增「启动播放音效」行——开关、导入、试听、移除。导入时先读时长，**超过 5 秒直接拒绝**并提示先裁剪；通过后把文件复制到 `PCL\Sounds\`（复制失败则退回使用原路径），避免源文件被移走。勾选开关时若还没有音效文件，会直接转入导入流程。
+- `Modules/Minecraft/ModLaunch.vb:2207`：游戏进程启动后按设置播放音效，并写入启动日志。
+- `Pages/PageSetup/Settings.vb`：新增键 `LaunchSoundPlay`（Bool）、`LaunchSoundFile`（String）。
+
+### 12. 启动前硬件检测与预警（设置 → 启动）
+- `Modules/Minecraft/ModHardware.vb`（**新增文件**）：
+  - 阈值换算：内存 = 滑动条值 + 1（1~32 GB，默认 **4 GB**）、CPU = 滑动条值 + 50（50~99%，默认 **90%**）、磁盘 = 滑动条值 + 1（1~50 GB）。
+  - 采集：可用/总物理内存走 `My.Computer.Info`；CPU 用 `kernel32!GetSystemTimes` 两次采样（约 0.3 秒）算整机占用率；显卡用 WMI `Win32_VideoController` 取名称、驱动版本与驱动发布日期；磁盘用 `DriveInfo` 取 PCL 所在盘剩余空间。
+  - `HardwareDetect()` 返回预警文案列表（空即状况良好）；`HardwareStatusText()` 供设置页「立即检测」。
+- `Modules/Minecraft/ModLaunch.vb:247`：启动前若总开关开启则检测，弹出「继续启动 / 取消启动」——**预警不拦截**，选取消则抛 `OperationCanceledException`；保存批处理脚本时跳过。
+- 内存与 CPU 为必选项，显卡（基础显示驱动 / 驱动超过 4 年 / 无法读取）与磁盘为可选项。
+- `Pages/PageSetup/Settings.vb`：新增键 `LaunchHardwareCheck`（默认 True）、`LaunchHardwareRam`、`LaunchHardwareCpu`、`LaunchHardwareGpu`、`LaunchHardwareDisk`、`LaunchHardwareDiskSize`。
+
+### 13. 升级整合包向导（版本设置 → 概览）
+- `Pages/PageInstance/PageInstanceOverall.xaml(.vb)`：概览页新增「升级整合包」卡片（**没有改动左侧导航**）。点击后询问「是否保留备份，方便回退？」，选择保留则后台复制整个版本文件夹。
+- `Modules/Minecraft/ModModpackUpgrade.vb`（**新增文件**）：
+  - 备份：`versions\{版本名} 备份 {yyyyMMdd-HHmmss}\`，并写入 `.pclignore` 使其不出现在版本列表中；备份前检查目标盘剩余空间，不足 1 GB 直接报错（复制大版本前不至于把磁盘写满）。
+  - 内核换算：按目标 MC 版本重新解析 Fabric / Forge / NeoForge / LiteLoader / OptiFine / Fabric API / OptiFabric 版本，沿用当前加载器家系；无法自动匹配的组合会记录说明，升级后需自行安装。
+  - 模组检查：读取 `mods\` 下每个 jar/zip/litemod 的哈希，走 Modrinth `version_files` / `update_individual` 与 CurseForge `fingerprints` / `mods/files`，按目标 MC 版本与所选发行类型（Alpha / Beta / 稳定版，多选）给出「可下载 / 无匹配 / 类型被排除 / 加载器不符 / 未识别」。
+  - 数据兼容：材质包、光影包、世界数据包、重要数据（`options.txt` 等）、`config\`；资源包兼容性只依据 `pack.mcmeta` 的 `supported_formats` 范围判断，读不到就标为「无法判断」，不猜 `pack_format`。
+  - 执行：就地升级复用临时目录构建 + `McInstallCommit` 覆盖当前版本（旧 json/jar 删除到回收站）；另存为新版本走标准安装链路。全程使用**自定义 OnStateChanged，绝不调用 `McInstallFailedClearFolder`**，避免失败或取消时把版本文件夹删掉。
+- `Pages/PageInstance/FrmModpackUpgrade.xaml(.vb)`（**新增文件**）：三步向导（选目标版本与发行类型 → 确认模组与数据勾选 → 汇总开始），在 `McInstanceLock` 下运行，占用版本时拒绝开始。
+- `Pages/PageSetup/Settings.vb`：新增键 `ModpackUpgradeAlpha` / `ModpackUpgradeBeta` / `ModpackUpgradeRelease`。
+
+### 14. 模组报错图形化检查（更多 → 小工具）
+- `Modules/Minecraft/ModModGraph.vb`（**新增文件**）：扫描 `mods\`，解析 `fabric.mod.json`、`quilt.mod.json`、`META-INF/mods.toml` / `neoforge.mods.toml`（项目内无 TOML 库，故为手写最小行解析）、`mcmod.info`，读不到元数据时退回文件名推断；单个文件损坏不影响整体。产出节点与三类连线：依赖、冲突、缺失前置。
+- `FrmModGraph.xaml(.vb)`（**新增文件**）：按 BFS 分层摆放节点卡片，依赖画实线、冲突与缺失前置画红色虚线贝塞尔曲线；图例、计数摘要、「仅显示有问题的 Mod」、「适应窗口」、「重新扫描」，Ctrl + 滚轮缩放（0.4~2.0）；非模态窗口，重复进入只刷新已打开的那个。
+- `Pages/PageOther/PageOtherTest.xaml(.vb)`：小工具页新增卡片，功能开关与「分析崩溃日志后直接打开」放在这里；开关关闭时按钮隐藏并给出说明。「检查当前版本」直接出图，「分析崩溃日志」先分析 `.log` / `.zip` 报错报告，再把崩溃点名的 Mod 标红合并进同一张图。
+- `Modules/Minecraft/ModCrash.vb`：仅新增只读属性 `ModSuspectNames`，把分类为「Mod 问题」的崩溃原因里点名的文件/名称暴露给依赖图，未改动上游分析逻辑。
+- `Pages/PageSetup/Settings.vb`：新增注册表键 `ToolModGraphEnable`、`ToolModGraphAutoPopup`。
+
 <br />
 
 ## 二、更名为 PCL PX
@@ -119,6 +152,9 @@
 ## 四、待办 / 已知不足
 
 - **第三方登录（LittleSkin / Yggdrasil）** 尚未接入正版登录链路，目前只在皮肤下载里使用 LittleSkin。
+- **升级整合包**：加载器版本由本项目按规则自动换算，个别组合（例如跨年代的 Forge / OptiFine）可能匹配不到，向导会明确列出「需要自行安装」的组件；就地升级会把旧 json / jar 删除到回收站，不确定时请先选「保留备份」。
+- **模组图形化检查**：老式 Forge 模组（只有 `mcmod.info`，没有依赖声明）只能按文件名成节点，依赖关系可能为空；崩溃点名的模组靠名称匹配，不能保证百分百准确。
+- **硬件预警**只在启动流程开始前触发，游戏运行期间不再监测；CPU 占用取的是整机采样值。
 - 本分支不实现 `DownloadLatestPCL`（整合包打包用），该项在上游开源分支即为空实现，导出整合包时不会自动附带最新启动器。
 - Adoptium 接口有速率限制，Java 列表刷新过快会失败。
 

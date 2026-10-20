@@ -208,6 +208,69 @@ Public Class PageInstanceOverall
 
 #End Region
 
+#Region "卡片：升级整合包"
+
+    Private FrmUpgrade As FrmModpackUpgrade = Nothing
+    Private LastBackup As String = Nothing
+
+    Private Sub BtnUpgrade_Click() Handles BtnUpgrade.Click
+        Try
+            If McInstanceLock.IsLocked(PageInstanceLeft.Instance) Then
+                Hint("该版本正在被修改，请稍后再试！", HintType.Red)
+                Return
+            End If
+            Select Case MyMsgBox($"是否保留备份，方便回退？" & vbCrLf & vbCrLf &
+                                 $"保留备份会把整个版本文件夹复制到 versions\{PageInstanceLeft.Instance.Name} 备份 时间\ 中，" & vbCrLf &
+                                 "它不会出现在版本列表中，随时可以手动删除。" & vbCrLf &
+                                 "若版本较大，这可能需要较长时间，也会占用较多磁盘空间。", "升级整合包", "保留备份", "不保留备份", "取消")
+                Case 1
+                    Hint("正在备份版本文件夹……")
+                    RunInNewThread(
+                    Sub()
+                        Try
+                            Dim Backup = ModpackUpgradeBackup(PageInstanceLeft.Instance)
+                            RunInUi(
+                            Sub()
+                                LastBackup = Backup
+                                BtnUpgradeOpen.Visibility = Visibility.Visible
+                                OpenUpgradeWindow()
+                            End Sub)
+                        Catch ex As Exception
+                            ex.ThrowIfCanceled()
+                            Logger.Error(ex, $"备份版本失败（{PageInstanceLeft.Instance.Name}）", LogBehavior.Alert)
+                        End Try
+                    End Sub, "升级整合包备份")
+                Case 2
+                    OpenUpgradeWindow()
+            End Select
+        Catch ex As Exception
+            Logger.Error(ex, $"升级整合包失败（{PageInstanceLeft.Instance.Name}）", LogBehavior.Alert)
+        End Try
+    End Sub
+    Private Sub OpenUpgradeWindow()
+        If FrmUpgrade IsNot Nothing Then
+            FrmUpgrade.Activate()
+            Return
+        End If
+        FrmUpgrade = New FrmModpackUpgrade()
+        AddHandler FrmUpgrade.Closed, AddressOf UpgradeWindow_Closed
+        FrmUpgrade.Owner = FrmMain
+        FrmUpgrade.Init(PageInstanceLeft.Instance)
+    End Sub
+    Private Sub UpgradeWindow_Closed(sender As Object, e As EventArgs)
+        FrmUpgrade = Nothing
+    End Sub
+
+    Private Sub BtnUpgradeOpen_Click() Handles BtnUpgradeOpen.Click
+        If LastBackup Is Nothing OrElse Not DirectoryUtils.Exists(LastBackup) Then
+            Hint("没有在本次启动中生成的备份，请到 versions 文件夹中查看。", HintType.Red)
+            Return
+        End If
+        OpenExplorer(LastBackup)
+    End Sub
+
+#End Region
+
 #Region "卡片：管理"
 
     '导出启动脚本

@@ -69,6 +69,22 @@
                     <local:MyButton x:Name="BtnFolderScreen" Text="截图文件夹" MinWidth="140" Padding="13,0" Margin="0,13,20,0" Height="35" />
                 </WrapPanel>
             </local:MyCard>
+            <local:MyCard Margin="0,0,0,15" Title="升级整合包" x:Name="PanUpgrade">
+                <StackPanel Margin="25,40,25,15">
+                    <TextBlock Margin="0,0,0,12" TextWrapping="Wrap"
+                               Text="把当前版本升级到另一个 Minecraft 版本：自动换算新内核、寻找每个模组的可用版本，并让你选择要带走的数据。" />
+                    <Grid Height="35">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" SharedSizeGroup="Button" />
+                            <ColumnDefinition Width="Auto" SharedSizeGroup="Button" />
+                        </Grid.ColumnDefinitions>
+                        <local:MyButton x:Name="BtnUpgrade" Text="升级整合包" MinWidth="140" Padding="13,0" Margin="0,0,20,0"
+                                        ToolTip="升级前会询问是否备份当前版本，以便回退。&#xa;模组的可用性检查需要联网，可能会有一部分模组无法自动匹配。" />
+                        <local:MyButton x:Name="BtnUpgradeOpen" Text="打开备份" MinWidth="140" Padding="13,0" Visibility="Collapsed"
+                                        ToolTip="打开上一次升级整合包时生成的备份文件夹" />
+                    </Grid>
+                </StackPanel>
+            </local:MyCard>
             <local:MyCard Margin="0,0,0,15" Title="高级管理" x:Name="PanManage">
                 <StackPanel Margin="25,40,25,15">
                     <Grid Margin="0,2,0,7" Height="35">

@@ -344,4 +344,63 @@ Public Module ModMusic
         End Try
     End Sub
 
+#Region "音效"
+
+    ''' <summary>
+    ''' 音效文件的存放目录。
+    ''' </summary>
+    Public Function SoundFolder() As String
+        Return Paths.Base & "PCL\Sounds\"
+    End Function
+    ''' <summary>
+    ''' 读取音频文件的时长（秒）。无法解析时会抛出异常。
+    ''' </summary>
+    Public Function SoundGetDuration(FileName As String) As Double
+        Dim Reader As WaveStream = Nothing
+        Try
+            Try
+                Reader = New AudioFileReader(FileName)
+            Catch ex As Exception
+                Reader = New MediaFoundationReader(FileName)
+            End Try
+            Return Reader.TotalTime.TotalSeconds
+        Finally
+            If Reader IsNot Nothing Then Reader.Dispose()
+        End Try
+    End Function
+    ''' <summary>
+    ''' 播放一次性音效。立即返回，且不影响背景音乐的播放状态。
+    ''' </summary>
+    Public Sub SoundPlay(FileName As String)
+        If FileName = "" OrElse Not FileUtils.Exists(FileName) Then Return
+        RunInNewThread(
+            Sub()
+                Dim CurrentWave As WaveOutEvent = Nothing
+                Dim Reader As WaveStream = Nothing
+                Try
+                    CurrentWave = New WaveOutEvent()
+                    CurrentWave.DeviceNumber = -1
+                    Try
+                        Reader = New AudioFileReader(FileName)
+                    Catch ex As Exception
+                        Reader = New MediaFoundationReader(FileName)
+                    End Try
+                    CurrentWave.Init(Reader)
+                    CurrentWave.Play()
+                    '最多等 10 秒，避免损坏的文件把线程挂住
+                    Dim Deadline = DateTime.Now.AddSeconds(10)
+                    While CurrentWave.PlaybackState <> PlaybackState.Stopped AndAlso DateTime.Now < Deadline
+                        Thread.Sleep(100)
+                    End While
+                Catch ex As Exception
+                    Logger.Warn(ex, $"播放音效失败（{PathUtils.GetLastPart(FileName)}）")
+                Finally
+                    If CurrentWave IsNot Nothing Then CurrentWave.Dispose()
+                    If Reader IsNot Nothing Then Reader.Dispose()
+                End Try
+            End Sub, "PCL 音效播放")
+    End Sub
+
+#End Region
+
 End Module

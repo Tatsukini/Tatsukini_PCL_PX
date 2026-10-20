@@ -31,6 +31,24 @@
                         </StackPanel>
                     </StackPanel>
                 </local:MyCard>
+
+                <local:MyCard Margin="0,15" Title="模组报错图形化检查" CanSwap="True">
+                    <StackPanel Margin="21,45,21,18">
+                        <TextBlock Text="读取每个 Mod 自己声明的依赖与冲突，以节点连线的方式列出它们之间的关系，帮助定位报错原因。" FontSize="14" TextWrapping="Wrap" />
+                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                            <local:MyCheckBox x:Name="CheckModGraphEnable" Height="22" Margin="0,0,20,0" Text="启用模组图形化检查" local:SettingService.Key="ToolModGraphEnable" />
+                            <local:MyCheckBox x:Name="CheckModGraphAutoPopup" Height="22" Text="分析崩溃日志后直接打开" local:SettingService.Key="ToolModGraphAutoPopup"
+                                              ToolTip="勾选后，分析崩溃日志会直接打开依赖图窗口；不勾选则每次先询问是否打开。" />
+                        </StackPanel>
+                        <StackPanel x:Name="PanModGraphButtons" Orientation="Horizontal" Margin="0,18,0,0">
+                            <local:MyButton x:Name="BtnModGraphScan" Text="检查当前版本" Height="36" MinWidth="150" ColorType="Highlight" />
+                            <local:MyButton x:Name="BtnModGraphCrash" Text="分析崩溃日志" Height="36" MinWidth="130" Margin="10,0,0,0" />
+                        </StackPanel>
+                        <TextBlock x:Name="LabModGraphDisabled" Margin="0,18,0,0" FontSize="14" Opacity="0.6" TextWrapping="Wrap" Visibility="Collapsed"
+                                   Text="模组图形化检查已关闭，请勾选上方的开关后再使用。" />
+                        <local:MyHint Theme="Blue" Margin="0,18,0,0" Text="本功能只读取各个 jar 自带的 fabric.mod.json、quilt.mod.json、META-INF/mods.toml 与 mcmod.info，文件缺失时只能按文件名猜测。不少 Mod 会漏写或错写前置声明，因此结果只是启发式的参考，最终的报错原因仍以游戏日志为准。" />
+                    </StackPanel>
+                </local:MyCard>
             </StackPanel>
 
             <StackPanel x:Name="PanMemoryAdvanced" Visibility="Collapsed">
