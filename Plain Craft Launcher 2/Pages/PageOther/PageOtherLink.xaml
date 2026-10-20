@@ -1,0 +1,164 @@
+<local:MyPageRight x:Class="PageOtherLink"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:PCL"
+    mc:Ignorable="d"
+    PanScroll="PanBack">
+    <Grid>
+        <local:MyScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" x:Name="PanBack">
+            <StackPanel Margin="25,10">
+
+<!--===============================-->
+<!--大厅-->
+<!--===============================-->
+                <local:MyCard Margin="0,15" Title="陶瓦联机大厅">
+                    <StackPanel Margin="21,45,21,18">
+                        <TextBlock x:Name="LabStatus" Text="正在准备联机内核……" FontSize="15" TextWrapping="Wrap" LineHeight="20" />
+                        <TextBlock x:Name="LabStatusHint" Margin="0,4,0,0" TextWrapping="Wrap" LineHeight="19" Foreground="{StaticResource ColorBrushGray3}" Visibility="Collapsed" />
+                        <Grid Margin="0,14,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1*" />
+                                <ColumnDefinition Width="16" />
+                                <ColumnDefinition Width="1*" />
+                            </Grid.ColumnDefinitions>
+                            <Border x:Name="CardTileHost" Grid.Column="0" CornerRadius="13" Cursor="Hand" Background="{StaticResource ColorBrushSemiTransparent}" Padding="21,18">
+                                <Grid IsHitTestVisible="False">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="13" />
+                                        <ColumnDefinition Width="1*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Path Grid.Column="0" Grid.Row="0" Height="26" Width="26" VerticalAlignment="Center" Margin="0,-1,0,0"
+                                        Stretch="Uniform" Fill="{DynamicResource ColorBrush3}"
+                                        Data="M384 128v192h256a64 64 0 0 1 64 64v256h192V128H384zM320 320V128a64 64 0 0 1 64-64h512a64 64 0 0 1 64 64v512a64 64 0 0 1-64 64h-192v192a64 64 0 0 1-64 64H128a64 64 0 0 1-64-64V384a64 64 0 0 1 64-64h192z m320 384H384a64 64 0 0 1-64-64V384H128v512h512v-192z m0-64V384H384v256h256z" />
+                                    <TextBlock Grid.Column="2" Grid.Row="0" Text="创建房间" FontSize="20" Foreground="{DynamicResource ColorBrush3}" />
+                                    <TextBlock Grid.Column="2" Grid.Row="1" Margin="1,9,10,0"
+                                        Text="把你正在玩的存档邀请给朋友。"
+                                        FontSize="14" LineHeight="19" TextWrapping="Wrap" Foreground="{StaticResource ColorBrushGray3}" />
+                                </Grid>
+                            </Border>
+                            <Border x:Name="CardTileJoin" Grid.Column="2" CornerRadius="13" Cursor="Hand" Background="{StaticResource ColorBrushSemiTransparent}" Padding="21,18">
+                                <Grid IsHitTestVisible="False">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="13" />
+                                        <ColumnDefinition Width="1*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Path Grid.Column="0" Grid.Row="0" Height="26" Width="26" VerticalAlignment="Center" Margin="0,-1,0,0"
+                                        Stretch="Uniform" Fill="{DynamicResource ColorBrush3}"
+                                        Data="m399,355l-92.5,101.6c-13.7,13.7-10.6,36.4,4.6,47,13.7,9.1,30.3,7.6,41-4.5l127.4-138.1c16.7-18.2,18.2-47,0-66.8l-125.9-141.1c-12.1-13.7-34.9-15.2-47,0-12.1,12.1-12.1,31.9,0,44l92.5,98.6H28.8c-16.7,0-28.8,13.7-28.8,28.8s13.7,28.8,28.8,28.8h370.2v1.5ZM625.7,0H224.6c-44,0-78.9,34.9-78.9,78.9v101.6c0,15.2,12.1,27.3,27.3,27.3s27.3-12.1,27.3-27.3v-98.6c0-15.2,12.1-27.3,27.3-27.3h387.5c15.2,0,27.3,12.1,27.3,27.3v493c0,15.2-12.1,27.3-27.3,27.3H229.2c-15.2,0-27.3-12.1-27.3-27.3v-101.6c0-16.7-13.7-28.8-28.8-28.8s-28.8,13.7-28.8,28.8v98.6c0,44,34.9,78.9,78.9,78.9h407.2c44,0,67.9-34.9,67.9-78.9V78.9c-4.6-44-28.4-78.9-72.4-78.9Z" />
+                                    <TextBlock Grid.Column="2" Grid.Row="0" Text="加入房间" FontSize="20" Foreground="{DynamicResource ColorBrush3}" />
+                                    <TextBlock Grid.Column="2" Grid.Row="1" Margin="1,9,10,0"
+                                        Text="输入朋友给你的邀请码。"
+                                        FontSize="14" LineHeight="19" TextWrapping="Wrap" Foreground="{StaticResource ColorBrushGray3}" />
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </local:MyCard>
+
+<!--===============================-->
+<!--房间-->
+<!--===============================-->
+                <local:MyCard x:Name="CardRoom" Margin="0,15" Title="房间" Visibility="Collapsed">
+                    <StackPanel Margin="21,45,21,18">
+                        <TextBlock x:Name="LabRoomTip" TextWrapping="Wrap" LineHeight="19" Foreground="{StaticResource ColorBrushGray3}" />
+                        <StackPanel x:Name="PanRoomCode" Margin="0,14,0,0">
+                            <TextBlock Text="邀请码" Foreground="{StaticResource ColorBrushGray3}" />
+                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                <TextBlock x:Name="LabRoomCode" FontSize="22" FontFamily="Consolas" VerticalAlignment="Center" />
+                                <local:MyButton x:Name="BtnRoomCopy" Text="复制邀请码" Height="32" MinWidth="110" Margin="16,0,0,0" Padding="10,0" ColorType="Highlight" />
+                            </StackPanel>
+                        </StackPanel>
+                        <StackPanel x:Name="PanRoomDirect" Margin="0,14,0,0">
+                            <TextBlock Text="直连地址" Foreground="{StaticResource ColorBrushGray3}" />
+                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                <TextBlock x:Name="LabRoomDirect" FontSize="16" FontFamily="Consolas" VerticalAlignment="Center" />
+                                <local:MyButton x:Name="BtnDirectCopy" Text="复制地址" Height="32" MinWidth="90" Margin="16,0,0,0" Padding="10,0" />
+                            </StackPanel>
+                        </StackPanel>
+                        <TextBlock Margin="0,18,0,0" Text="房间成员" Foreground="{StaticResource ColorBrushGray3}" />
+                        <StackPanel x:Name="PanMembers" Margin="0,6,0,0" />
+                        <TextBlock x:Name="LabMembersEmpty" Margin="0,6,0,0" Text="还没有其他玩家加入。" Foreground="{StaticResource ColorBrushGray3}" />
+                        <local:MyButton x:Name="BtnRoomLeave" Text="离开房间" Height="34" MinWidth="120" HorizontalAlignment="Left" Margin="0,18,0,0" />
+                    </StackPanel>
+                </local:MyCard>
+
+<!--===============================-->
+<!--说明-->
+<!--===============================-->
+                <local:MyCard x:Name="CardGuide" Margin="0,15" Title="怎么玩" CanSwap="True" IsSwapped="True">
+                    <StackPanel Margin="21,45,21,18">
+                        <TextBlock TextWrapping="Wrap" LineHeight="21"
+                                   Text="房主：先启动游戏并进入存档，按 Esc 选择“对局域网开放”，然后回到这里点击“创建房间”，把邀请码发给朋友。" />
+                        <TextBlock Margin="0,10,0,0" TextWrapping="Wrap" LineHeight="21"
+                                   Text="房客：先点击“加入房间”并填入邀请码，等状态变成“已成功加入房间”后再启动游戏，在多人游戏列表里就能看到房主的房间，双击即可进入。" />
+                        <TextBlock Margin="0,10,0,0" TextWrapping="Wrap" LineHeight="21"
+                                   Text="邀请码形如 U/XXXX-XXXX-XXXX-XXXX，其中的 I 与 O 会被自动当作 1 与 0，多输或少输一些文字也没关系，陶瓦能自己找出来。" />
+                        <TextBlock Margin="0,10,0,0" TextWrapping="Wrap" LineHeight="21"
+                                   Text="联机质量取决于双方的网络环境。如果一直连不上，可以让房主也打开一次陶瓦的控制面板，看看它报告的网络难度。" />
+                    </StackPanel>
+                </local:MyCard>
+
+<!--===============================-->
+<!--设置-->
+<!--===============================-->
+                <local:MyCard x:Name="CardSetup" Margin="0,15" Title="联机设置" CanSwap="True" IsSwapped="True">
+                    <StackPanel Margin="21,45,21,18">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="显示名" VerticalAlignment="Center" />
+                            <local:MyTextBox x:Name="TxtPlayerName" Grid.Column="1" Height="32" VerticalAlignment="Center" MaxLength="60" HintText="留空则使用陶瓦的默认名称" />
+                        </Grid>
+                        <Grid Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="自定义节点" VerticalAlignment="Top" Margin="0,7,0,0" />
+                            <local:MyTextBox x:Name="TxtPublicNodes" Grid.Column="1" Height="72" VerticalAlignment="Center" AcceptsReturn="True" TextWrapping="Wrap"
+                                            VerticalScrollBarVisibility="Auto" HintText="每行一个 EasyTier 公共节点，例如 tcp://1.2.3.4:11010。留空则使用陶瓦内置的公共节点。" />
+                        </Grid>
+                        <TextBlock Margin="0,10,0,0" TextWrapping="Wrap" LineHeight="19" Foreground="{StaticResource ColorBrushGray3}"
+                                   Text="以上两项在离开输入框时自动保存。自定义节点会追加在陶瓦内置节点之后，不会替换它们。" />
+                        <TextBlock x:Name="LabKernelInfo" Margin="0,14,0,0" TextWrapping="Wrap" LineHeight="19" Foreground="{StaticResource ColorBrushGray3}" />
+                        <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                            <local:MyButton x:Name="BtnOpenPanel" Text="打开陶瓦控制面板" Height="34" MinWidth="140" />
+                            <local:MyButton x:Name="BtnQuitKernel" Text="退出陶瓦后台" Height="34" MinWidth="110" Margin="10,0,0,0" />
+                            <local:MyButton x:Name="BtnReinstallKernel" Text="重新下载内核" Height="34" MinWidth="110" Margin="10,0,0,0" />
+                        </StackPanel>
+                    </StackPanel>
+                </local:MyCard>
+
+<!--===============================-->
+<!--关于-->
+<!--===============================-->
+                <local:MyCard Margin="0,0,0,15" Title="关于陶瓦联机">
+                    <StackPanel Margin="21,45,21,18">
+                        <TextBlock x:Name="LabCopyright" TextWrapping="Wrap" LineHeight="20" />
+                        <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                            <local:MyButton x:Name="BtnTerraWebsite" Text="项目地址" Height="34" MinWidth="100" />
+                            <local:MyButton x:Name="BtnTerraLicense" Text="开源许可" Height="34" MinWidth="100" Margin="10,0,0,0" />
+                        </StackPanel>
+                    </StackPanel>
+                </local:MyCard>
+            </StackPanel>
+        </local:MyScrollViewer>
+        <local:MyCard Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="40,0" SnapsToDevicePixels="True" x:Name="PanLoad" UseAnimation="False">
+            <local:MyLoading Text="正在准备陶瓦联机内核" ShowProgress="True" Margin="20,20,20,17" x:Name="Load" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </local:MyCard>
+    </Grid>
+</local:MyPageRight>
