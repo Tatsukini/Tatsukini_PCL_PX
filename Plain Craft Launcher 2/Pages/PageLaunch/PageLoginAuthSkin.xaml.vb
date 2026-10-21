@@ -12,17 +12,23 @@ Public Class PageLoginAuthSkin
     ''' 刷新页面显示的所有信息。
     ''' </summary>
     Public Sub Reload(KeepInput As Boolean)
-        TextName.Text = Settings.Get(Of String)("CacheAuthName")
-        TextEmail.Text = Settings.Get(Of String)("CacheAuthUsername")
+        Dim Token As String = PageLoginAuth.CurrentToken()
+        TextName.Text = Settings.Get(Of String)("Cache" & Token & "Name")
+        TextEmail.Text = Settings.Get(Of String)("Cache" & Token & "Username")
         TextEmail.Visibility = If(Settings.Get(Of Boolean)("UiLauncherEmail"), Visibility.Collapsed, Visibility.Visible)
+        Skin.Loader = If(Token = "LittleSkin", PageLaunchLeft.SkinLittleSkin, PageLaunchLeft.SkinAuth)
         PageLoginLegacy_Loaded()
     End Sub
     ''' <summary>
     ''' 获取当前页面的登录信息。
     ''' </summary>
     Public Shared Function GetLoginData() As McLoginServer
-        Dim Server As String = If(IsNothing(McInstanceSelected), Settings.Get(Of String)("CacheAuthServerServer"), Settings.Get(Of String)("VersionServerAuthServer", Instance:=McInstanceSelected)) & "/authserver"
-        Return New McLoginServer(McLoginType.Auth) With {.Token = "Auth", .BaseUrl = Server, .UserName = Settings.Get(Of String)("CacheAuthUsername"), .Password = Settings.Get(Of String)("CacheAuthPass"), .Description = "Authlib-Injector", .Type = McLoginType.Auth}
+        Dim Token As String = PageLoginAuth.CurrentToken()
+        Dim IsLittleSkin As Boolean = Token = "LittleSkin"
+        Dim Type As McLoginType = If(IsLittleSkin, McLoginType.LittleSkin, McLoginType.Auth)
+        Dim Server As String = If(IsLittleSkin, LittleSkinAuthUrl(),
+            If(IsNothing(McInstanceSelected), Settings.Get(Of String)("CacheAuthServerServer"), Settings.Get(Of String)("VersionServerAuthServer", Instance:=McInstanceSelected)) & "/authserver")
+        Return New McLoginServer(Type) With {.Token = Token, .BaseUrl = Server, .UserName = Settings.Get(Of String)("Cache" & Token & "Username"), .Password = Settings.Get(Of String)("Cache" & Token & "Pass"), .Description = If(IsLittleSkin, "LittleSkin", "Authlib-Injector"), .Type = Type}
     End Function
 
     Private Sub PageLoginAuthSkin_MouseEnter(sender As Object, e As MouseEventArgs) Handles PanData.MouseEnter
@@ -55,8 +61,9 @@ Public Class PageLoginAuthSkin
             Return
         End If
         Hint("正在尝试更换，请稍候！")
-        Settings.Set("CacheAuthUuid", "") '清空选择缓存
-        Settings.Set("CacheAuthName", "")
+        Dim Token As String = PageLoginAuth.CurrentToken()
+        Settings.Set("Cache" & Token & "Uuid", "") '清空选择缓存
+        Settings.Set("Cache" & Token & "Name", "")
         RunInThread(
         Sub()
             Try
@@ -70,16 +77,22 @@ Public Class PageLoginAuthSkin
         End Sub)
     End Sub
     Public Shared Sub ExitLogin() Handles BtnExit.Click
-        Settings.Set("CacheAuthAccess", "")
-        Settings.Set("CacheAuthUuid", "")
-        Settings.Set("CacheAuthName", "")
-        McLoginAuthLoader.Input = Nothing '防止因为输入的用户名密码相同，直接使用了上次登录的加载器结果
+        Dim Token As String = PageLoginAuth.CurrentToken()
+        Settings.Set("Cache" & Token & "Access", "")
+        Settings.Set("Cache" & Token & "Uuid", "")
+        Settings.Set("Cache" & Token & "Name", "")
+        If Token = "LittleSkin" Then
+            McLoginLittleSkinLoader.Input = Nothing '防止因为输入的用户名密码相同，直接使用了上次登录的加载器结果
+        Else
+            McLoginAuthLoader.Input = Nothing
+        End If
         FrmLaunchLeft.RefreshPage(False, True)
     End Sub
 
     Private Sub Skin_Click(sender As Object, e As MouseButtonEventArgs) Handles Skin.Click
-        Dim Address As String = If(McInstanceSelected IsNot Nothing, Settings.Get(Of String)("VersionServerAuthRegister", Instance:=McInstanceSelected), Settings.Get(Of String)("CacheAuthServerRegister"))
-        If String.IsNullOrEmpty(New ValidateHttp().Validate(Address)) Then OpenWebsite(Address.Replace("/auth/register", "/user/closet"))
+        Dim Address As String = PageLoginAuth.RegisterUrl()
+        If Not String.IsNullOrEmpty(New ValidateHttp().Validate(Address)) Then Return
+        OpenWebsite(Address.Replace("/auth/register", "/user/closet").Replace("/user/register", "/user/closet"))
     End Sub
 
 End Class

@@ -1,0 +1,68 @@
+<local:MyPageRight
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:PCL" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+    mc:Ignorable="d" x:Class="PageInstanceSchematic" d:DesignHeight="620" d:DesignWidth="800">
+    <Grid x:Name="PanAllBack" Margin="25,10,25,15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" MinHeight="360" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <local:MyCard Grid.Row="0" Title="预览原理图">
+            <Grid Margin="21,42,21,15">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="1*" />
+                </Grid.ColumnDefinitions>
+                <local:MyButton x:Name="BtnOpen" Grid.Column="0" Height="35" MinWidth="120" Margin="0,0,10,0" Padding="13,0" Text="选择原理图" ColorType="Highlight" />
+                <local:MyButton x:Name="BtnSample" Grid.Column="1" Height="35" MinWidth="100" Margin="0,0,10,0" Padding="13,0" Text="载入示例" />
+                <local:MyButton x:Name="BtnFit" Grid.Column="2" Height="35" MinWidth="90" Margin="0,0,10,0" Padding="13,0" Text="复位视角" />
+                <local:MyButton x:Name="BtnList" Grid.Column="3" Height="35" MinWidth="90" Margin="0,0,10,0" Padding="13,0" Text="方块清单" />
+                <local:MyButton x:Name="BtnExport" Grid.Column="4" Height="35" MinWidth="90" Padding="13,0" Text="导出清单" />
+                <TextBlock x:Name="LabInfo" Grid.Column="5" VerticalAlignment="Center" Margin="12,0,0,0" TextWrapping="Wrap" Opacity="0.6" Text="尚未载入原理图" />
+            </Grid>
+        </local:MyCard>
+        <Grid Grid.Row="1" Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Border x:Name="PanViewBorder" Grid.Column="0" Background="#FF1B1F26" CornerRadius="6" ClipToBounds="True">
+                <Grid>
+                    <Viewport3D x:Name="PanView" Focusable="True" />
+                    <StackPanel Margin="14,12" HorizontalAlignment="Left" VerticalAlignment="Top" Opacity="0.72">
+                        <TextBlock Foreground="#FFFFFFFF" FontSize="12" Text="中键拖动 旋转视角　　Shift + 中键 平移　　滚轮 缩放" />
+                        <TextBlock Foreground="#FFFFFFFF" FontSize="12" Margin="0,3,0,0" Text="小键盘 1 / 3 / 7 前 · 右 · 顶（连按两次看对面）" />
+                        <TextBlock Foreground="#FFFFFFFF" FontSize="12" Margin="0,3,0,0" Text="小键盘 5 正交　　0 透视　　. 复位　　右键 选中方块" />
+                        <TextBlock Foreground="#FFFFFFFF" FontSize="12" Margin="0,3,0,0" Text="F 复位　　+ / - 缩放　　L 清单　　Ctrl+F 搜索　　Ctrl+E 导出　　Esc 取消选中" />
+                    </StackPanel>
+                    <TextBlock x:Name="LabTip" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"
+                               Foreground="#FFDCE3EC" FontSize="14" TextWrapping="Wrap" Visibility="Collapsed" />
+                    <TextBlock x:Name="LabSelect" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,14,12"
+                               Foreground="#FFFFD37A" FontSize="12" TextWrapping="Wrap" TextAlignment="Right" />
+                </Grid>
+            </Border>
+            <local:MyCard x:Name="CardBlocks" Grid.Column="1" Width="340" Margin="10,0,0,0" Title="方块清单" Visibility="Collapsed">
+                <Grid Margin="16,42,14,14">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="1*" />
+                    </Grid.RowDefinitions>
+                    <local:MyTextBox x:Name="TextSearch" Grid.Row="0" HintText="搜索方块名，回车定位（Ctrl+F）" ToolTip="输入方块名的一部分即可过滤，回车跳到第一个结果。" />
+                    <TextBlock x:Name="LabListSummary" Grid.Row="1" Margin="2,8,0,6" Opacity="0.6" FontSize="12" Text="—" />
+                    <ScrollViewer x:Name="PanListScroll" Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel x:Name="PanBlockList" />
+                    </ScrollViewer>
+                </Grid>
+            </local:MyCard>
+        </Grid>
+        <TextBlock x:Name="LabStatus" Grid.Row="2" Margin="0,8,0,0" Opacity="0.6" TextWrapping="Wrap"
+                   Text="支持旧版 .schematic（Alpha / MCEdit）、新版 .schem（Sponge v2、v3）与 Litematica 的 .litematic。" />
+    </Grid>
+</local:MyPageRight>

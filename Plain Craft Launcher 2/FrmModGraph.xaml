@@ -14,11 +14,13 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <TextBlock x:Name="LabSummary" VerticalAlignment="Center" FontSize="13" Text="正在扫描 Mod……" TextTrimming="CharacterEllipsis" />
             <local:MyCheckBox Grid.Column="1" x:Name="CheckOnlyProblem" Height="22" Margin="0,0,15,0" Text="仅显示有问题的 Mod" />
             <local:MyButton Grid.Column="2" x:Name="BtnFit" Height="26" Width="70" Margin="0,0,8,0" Text="适应窗口" />
-            <local:MyButton Grid.Column="3" x:Name="BtnRescan" Height="26" Width="70" Text="重新扫描" />
+            <local:MyButton Grid.Column="3" x:Name="BtnResetLayout" Height="26" Width="70" Margin="0,0,8,0" Text="重置位置" ToolTip="清除所有手动拖动过的位置，恢复自动排列" />
+            <local:MyButton Grid.Column="4" x:Name="BtnRescan" Height="26" Width="70" Text="重新扫描" />
         </Grid>
         <local:MyHint x:Name="HintEmpty" DockPanel.Dock="Top" Theme="Blue" Margin="12,0,12,8" Visibility="Collapsed"
                       Text="该版本的 mods 文件夹是空的，或者里面的文件都打不开。请确认已经在 启动 页选择了正确的版本，并把 Mod 安装到该版本下。" />
@@ -32,11 +34,11 @@
                 <TextBlock Margin="5,0,16,0" FontSize="12" VerticalAlignment="Center" Text="缺少前置 / 与当前 MC 版本不符" />
                 <Border Width="14" Height="14" CornerRadius="3" Background="#FFFFFFFF" BorderBrush="#FFD93B3B" BorderThickness="3" />
                 <TextBlock Margin="5,0,16,0" FontSize="12" VerticalAlignment="Center" Text="崩溃日志中提及" />
-                <TextBlock Margin="0,0,0,0" FontSize="12" VerticalAlignment="Center" Foreground="#FF808080" Text="实线为依赖，虚线为冲突或缺少前置；按住 Ctrl 滚动鼠标缩放。" />
+                <TextBlock Margin="0,0,0,0" FontSize="12" VerticalAlignment="Center" Foreground="#FF808080" Text="实线为依赖，虚线为冲突或缺少前置；可拖动节点，单击节点只看相关连线；Ctrl + 滚轮缩放。" />
             </StackPanel>
         </Border>
         <ScrollViewer x:Name="PanScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-            <Canvas x:Name="PanGraph" HorizontalAlignment="Left" VerticalAlignment="Top">
+            <Canvas x:Name="PanGraph" Background="Transparent" HorizontalAlignment="Left" VerticalAlignment="Top">
                 <Canvas.LayoutTransform>
                     <ScaleTransform x:Name="TransZoom" ScaleX="1" ScaleY="1" />
                 </Canvas.LayoutTransform>

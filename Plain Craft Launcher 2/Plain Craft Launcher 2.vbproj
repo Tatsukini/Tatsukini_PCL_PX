@@ -263,6 +263,8 @@
     <Compile Include="GlobalSuppressions.vb" />
     <Compile Include="Modules\Minecraft\ModCrash.vb" />
     <Compile Include="Modules\Minecraft\ModModGraph.vb" />
+    <Compile Include="Modules\Minecraft\ModSchematic.vb" />
+    <Compile Include="Modules\Minecraft\ModLoginDevice.vb" />
     <Compile Include="Modules\ModMusic.vb" />
     <Compile Include="Modules\ModDevelop.vb" />
     <Compile Include="Modules\Minecraft\ModWatcher.vb" />
@@ -332,6 +334,9 @@
     </Compile>
     <Compile Include="Pages\PageInstance\PageInstanceExport.xaml.vb">
       <DependentUpon>PageInstanceExport.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Pages\PageInstance\PageInstanceSchematic.xaml.vb">
+      <DependentUpon>PageInstanceSchematic.xaml</DependentUpon>
     </Compile>
     <Compile Include="Pages\PageInstance\PageInstanceLeft.xaml.vb">
       <DependentUpon>PageInstanceLeft.xaml</DependentUpon>
@@ -620,6 +625,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="Pages\PageInstance\PageInstanceSchematic.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Pages\PageInstance\PageInstanceExport.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -817,6 +826,7 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\Heads\LTCat.jpg" />
+    <Resource Include="Images\Heads\Tatsukini.jpg" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Newtonsoft.Json.dll" />

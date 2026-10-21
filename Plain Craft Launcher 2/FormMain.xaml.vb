@@ -827,8 +827,10 @@ Public Class FormMain
 
         '按 ESC 取消启动，或返回上一级
         If e.Key = Key.Escape Then
-            If PageCurrent = FormMain.PageType.Launch AndAlso McLaunchLoader.State = LoadState.Loading Then
+            If McLaunchLoader.State = LoadState.Loading Then
+                '启动过程中不管在哪个页面，Esc 都等同于点启动页的「取消」
                 FrmLaunchLeft.BtnCancel_Click()
+                If PageCurrent <> FormMain.PageType.Launch Then Hint("已取消启动。", HintType.Blue)
                 Return
             End If
             TriggerPageBack()
@@ -1253,6 +1255,7 @@ Public Class FormMain
         InstanceMod = 3
         InstanceModDisabled = 4
         InstanceExport = 5
+        InstanceSchematic = 6
     End Enum
     ''' <summary>
     ''' 获取次级页面的名称。若并非次级页面则返回空字符串，故可以以此判断是否为次级页面。

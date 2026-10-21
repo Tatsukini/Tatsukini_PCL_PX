@@ -12,6 +12,10 @@ Public Module ModMemoryOptimize
         WorkingSet = 1
         ''' <summary>通过 NtSetSystemInformation 整理系统工作集并清空待机页面列表。</summary>
         SystemList = 2
+        ''' <summary>整理工作集，只清空低优先级待机页，尽量保留常用的文件缓存。</summary>
+        Gentle = 3
+        ''' <summary>依次执行工作集整理、已修改页写盘、待机列表清空与内存列表合并。</summary>
+        Deep = 4
     End Enum
 
     Private Const PROCESS_ALL_ACCESS As UInteger = &H1F0FFF
@@ -21,9 +25,13 @@ Public Module ModMemoryOptimize
     Private Const SE_PRIVILEGE_ENABLED As UInteger = &H2
     'SYSTEM_INFORMATION_CLASS.SystemMemoryListInformation
     Private Const SystemMemoryListInformation As Integer = &H58
+    'SYSTEM_INFORMATION_CLASS.SystemCombinePhysicalMemoryInformation
+    Private Const SystemCombinePhysicalMemoryInformation As Integer = &H33
     'SYSTEM_MEMORY_LIST_COMMAND
     Private Const MemoryEmptyWorkingSets As Integer = 2
+    Private Const MemoryFlushModifiedList As Integer = 3
     Private Const MemoryPurgeStandbyList As Integer = 4
+    Private Const MemoryPurgeLowPriorityStandbyList As Integer = 5
 
     <StructLayout(LayoutKind.Sequential)>
     Private Structure LUID
@@ -55,6 +63,9 @@ Public Module ModMemoryOptimize
     End Function
     <DllImport("ntdll.dll")>
     Private Function NtSetSystemInformation(SystemInformationClass As Integer, ByRef Buffer As Integer, Length As Integer) As Integer
+    End Function
+    <DllImport("ntdll.dll")>
+    Private Function NtSetSystemInformation(SystemInformationClass As Integer, Buffer As IntPtr, Length As Integer) As Integer
     End Function
     <DllImport("advapi32.dll", SetLastError:=True)>
     Private Function OpenProcessToken(ProcessHandle As IntPtr, DesiredAccess As UInteger, ByRef TokenHandle As IntPtr) As Boolean
@@ -213,20 +224,45 @@ Public Module ModMemoryOptimize
     End Function
 
     ''' <summary>
-    ''' 通过系统调用整理系统工作集并清空待机页面列表。返回成功的指令数。
+    ''' 执行一条系统内存列表指令，成功返回 True。需要 SeProfileSingleProcess 等权限。
     ''' </summary>
-    Private Function PurgeSystemMemoryLists() As Integer
-        Dim Ok As Integer = 0
-        For Each Command As Integer In New Integer() {MemoryEmptyWorkingSets, MemoryPurgeStandbyList}
-            Try
-                Dim Status = NtSetSystemInformation(SystemMemoryListInformation, Command, 4)
-                Logger.Info($"清理系统内存列表（命令 {Command}）：NTSTATUS = 0x{Status:X8}")
-                If Status = 0 Then Ok += 1
-            Catch ex As Exception
-                Logger.Warn(ex, $"清理系统内存列表失败（命令 {Command}）")
-            End Try
-        Next
-        Return Ok
+    Private Function RunMemoryListCommand(Command As Integer) As Boolean
+        Try
+            Dim Status = NtSetSystemInformation(SystemMemoryListInformation, Command, 4)
+            Logger.Info($"执行系统内存列表指令（命令 {Command}）：NTSTATUS = 0x{Status:X8}")
+            Return Status = 0
+        Catch ex As Exception
+            Logger.Warn(ex, $"执行系统内存列表指令失败（命令 {Command}）")
+            Return False
+        End Try
+    End Function
+
+    ''' <summary>整理系统与各进程的工作集，等同于 RAMMap 的 Empty Working Sets。</summary>
+    Private Function TrimSystemWorkingSets() As Boolean
+        Return RunMemoryListCommand(MemoryEmptyWorkingSets)
+    End Function
+    ''' <summary>清空待机页面列表，等同于 RAMMap 的 Empty Standby List。</summary>
+    Private Function PurgeStandbyList() As Boolean
+        Return RunMemoryListCommand(MemoryPurgeStandbyList)
+    End Function
+    ''' <summary>只清空低优先级的待机页面，尽量保留接下来还会用到的文件缓存。</summary>
+    Private Function PurgeLowPriorityStandbyList() As Boolean
+        Return RunMemoryListCommand(MemoryPurgeLowPriorityStandbyList)
+    End Function
+    ''' <summary>把已修改但尚未保存的页面写回磁盘，之后这些页面可以被回收。</summary>
+    Private Function FlushModifiedList() As Boolean
+        Return RunMemoryListCommand(MemoryFlushModifiedList)
+    End Function
+    ''' <summary>合并物理内存中的空闲页，减少内存列表碎片。</summary>
+    Private Function CombinePhysicalMemory() As Boolean
+        Try
+            Dim Status = NtSetSystemInformation(SystemCombinePhysicalMemoryInformation, IntPtr.Zero, 0)
+            Logger.Info($"合并物理内存列表：NTSTATUS = 0x{Status:X8}")
+            Return Status = 0
+        Catch ex As Exception
+            Logger.Warn(ex, "合并物理内存列表失败")
+            Return False
+        End Try
     End Function
 
     Private Function KillSelectedProcesses(SelfId As Integer) As List(Of String)
@@ -263,36 +299,43 @@ Public Module ModMemoryOptimize
         Dim Actions As New List(Of String)
         Dim FailedCount As Integer
         Dim Preferred = ReadMode()
-        Dim PrimaryOk As Boolean
 
         Select Case Preferred
             Case MemoryOptimizeMode.WorkingSet
+                '只整理各进程的工作集
                 Dim Finished = TrimProcessWorkingSets(SelfId, FailedCount)
-                PrimaryOk = Finished > 0
-                If PrimaryOk Then Actions.Add($"整理 {Finished} 个进程的工作集")
+                If Finished > 0 Then Actions.Add($"整理 {Finished} 个进程的工作集")
             Case MemoryOptimizeMode.SystemList
-                Dim Ok = PurgeSystemMemoryLists()
-                PrimaryOk = Ok > 0
-                If PrimaryOk Then Actions.Add("清理系统工作集与待机页面列表")
+                '只使用系统内存列表指令
+                If TrimSystemWorkingSets() Then Actions.Add("整理系统工作集")
+                If PurgeStandbyList() Then Actions.Add("清空待机页面列表")
+            Case MemoryOptimizeMode.Gentle
+                '保留接下来还可能用到的缓存，只释放低优先级待机页
+                Dim Finished = TrimProcessWorkingSets(SelfId, FailedCount)
+                If Finished > 0 Then Actions.Add($"整理 {Finished} 个进程的工作集")
+                If PurgeLowPriorityStandbyList() Then Actions.Add("清空低优先级待机页面")
+            Case MemoryOptimizeMode.Deep
+                '把所有可用手段依次执行一遍
+                Dim Finished = TrimProcessWorkingSets(SelfId, FailedCount)
+                If Finished > 0 Then Actions.Add($"整理 {Finished} 个进程的工作集")
+                If TrimSystemWorkingSets() Then Actions.Add("整理系统工作集")
+                If FlushModifiedList() Then Actions.Add("把已修改页面写回磁盘")
+                If PurgeStandbyList() Then Actions.Add("清空待机页面列表")
+                If CombinePhysicalMemory() Then Actions.Add("合并内存列表碎片")
             Case Else
                 Dim Finished = TrimProcessWorkingSets(SelfId, FailedCount)
-                If Finished > 0 Then
-                    Actions.Add($"整理 {Finished} 个进程的工作集")
-                    PrimaryOk = True
-                End If
-                If PurgeSystemMemoryLists() > 0 Then
-                    Actions.Add("清理系统工作集与待机页面列表")
-                    PrimaryOk = True
-                End If
+                If Finished > 0 Then Actions.Add($"整理 {Finished} 个进程的工作集")
+                If TrimSystemWorkingSets() Then Actions.Add("整理系统工作集")
+                If PurgeStandbyList() Then Actions.Add("清空待机页面列表")
         End Select
 
-        '首选逻辑没有生效，自动改用另一种
-        If Not PrimaryOk Then
-            If Preferred = MemoryOptimizeMode.WorkingSet Then
-                If PurgeSystemMemoryLists() > 0 Then Actions.Add("清理系统工作集与待机页面列表（已自动改用）")
-            Else
-                Dim Finished = TrimProcessWorkingSets(SelfId, FailedCount)
-                If Finished > 0 Then Actions.Add($"整理 {Finished} 个进程的工作集（已自动改用）")
+        '所选方式完全没有生效，改用最基本的两种手段
+        If Not Actions.Any Then
+            Dim Finished = TrimProcessWorkingSets(SelfId, FailedCount)
+            If Finished > 0 Then
+                Actions.Add($"整理 {Finished} 个进程的工作集（已自动改用）")
+            ElseIf PurgeStandbyList() Then
+                Actions.Add("清空待机页面列表（已自动改用）")
             End If
         End If
 
@@ -304,7 +347,7 @@ Public Module ModMemoryOptimize
         If Not Actions.Any Then
             Hint("内存优化没有生效：PCL 无法修改其他进程的内存。" & vbCrLf & vbCrLf &
                  "请完全关闭 PCL 后，右键选择 属性 → 兼容性 → 以管理员身份运行此程序，再试一次。" & vbCrLf &
-                 "也可以在 高级设置 中切换 首选逻辑 后重试。", HintType.Red)
+                 "也可以在 高级设置 中切换 优化方式 后重试。", HintType.Red)
             Return
         End If
         Dim Result = $"内存优化完成：{String.Join("，", Actions)}，可用内存增加约 {Freed / 1024 / 1024} MB。"

@@ -191,12 +191,14 @@ Public Class FrmModpackUpgrade
             Return
         End If
         SetBusyState(True, "正在检查兼容性，这可能需要几十秒……")
+        '后台线程不能读取界面控件，先取值
+        Dim AllowRelease = CheckRelease.Checked, AllowBeta = CheckBeta.Checked, AllowAlpha = CheckAlpha.Checked
+        Dim ModsFolder = PathUtils.AddSlashSuffix(Instance.PathIndie) & "mods\"
         RunInNewThread(
         Sub()
             Try
                 Kernel = ModpackUpgradeKernelBuild(Instance, Target, If(IsInPlaceMode, Instance.Name, NewName), IsInPlaceMode)
-                Mods = ModpackUpgradeModsCheck(PathUtils.AddSlashSuffix(Instance.PathIndie) & "mods\", Target,
-                                               CheckRelease.Checked, CheckBeta.Checked, CheckAlpha.Checked)
+                Mods = ModpackUpgradeModsCheck(ModsFolder, Target, AllowRelease, AllowBeta, AllowAlpha)
                 Categories = ModpackUpgradeDataScan(Instance, Target)
                 RunInUi(Sub()
                             SetBusyState(False, "")

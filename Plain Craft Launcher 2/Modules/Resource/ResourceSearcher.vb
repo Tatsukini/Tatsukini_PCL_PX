@@ -435,8 +435,13 @@ NextPage:
                 End If
             ElseIf Errors.Any() Then
                 '有结果但是有错误
-                If Errors.Any(Function(e) e.Source = ResourcePlatforms.CurseForge) Then
-                    Storage.ErrorMessage = $"无法连接到 CurseForge，所以目前仅显示了来自 Modrinth 的内容，搜索结果可能不全。{vbCrLf}请稍后再试，或使用 VPN 改善网络环境。"
+                Dim CurseForgeErrors = Errors.Where(Function(e) e.Source = ResourcePlatforms.CurseForge).ToList()
+                If CurseForgeErrors.Any() Then
+                    If CurseForgeErrors.Any(Function(e) e.Ex.ToString().Contains("API Key") OrElse e.Ex.ToString().Contains("Unauthorized")) Then
+                        Storage.ErrorMessage = $"CurseForge 拒绝了请求：API Key 缺失或无效，所以目前仅显示了来自 Modrinth 的内容，搜索结果可能不全。{vbCrLf}请在 设置 → 其他 → 社区资源 中填写 CurseForge Key。"
+                    Else
+                        Storage.ErrorMessage = $"无法连接到 CurseForge，所以目前仅显示了来自 Modrinth 的内容，搜索结果可能不全。{vbCrLf}请稍后再试，或使用 VPN 改善网络环境。"
+                    End If
                 Else
                     Storage.ErrorMessage = $"无法连接到 Modrinth，所以目前仅显示了来自 CurseForge 的内容，搜索结果可能不全。{vbCrLf}请稍后再试，或使用 VPN 改善网络环境。"
                 End If

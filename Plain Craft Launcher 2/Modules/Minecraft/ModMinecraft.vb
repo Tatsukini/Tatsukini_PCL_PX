@@ -736,6 +736,7 @@ ExitDataLoad:
                 ElseIf State <> McInstanceState.Error Then
                     If Settings.Get(Of Integer)("VersionServerLogin", Instance:=Me) = 3 Then Info += ", 统一通行证验证"
                     If Settings.Get(Of Integer)("VersionServerLogin", Instance:=Me) = 4 Then Info += ", Authlib 验证"
+                    If Settings.Get(Of Integer)("VersionServerLogin", Instance:=Me) = 5 Then Info += ", LittleSkin 验证"
                 End If
             End If
         End Sub
@@ -1417,6 +1418,8 @@ OnLoaded:
                 Url = "https://auth.mc-user.com:233/" & If(McInstanceSelected Is Nothing, Settings.Get(Of String)("CacheNideServer"), Settings.Get(Of String)("VersionServerNide", Instance:=McInstanceSelected)) & "/sessionserver/session/minecraft/profile/"
             Case "Auth"
                 Url = If(McInstanceSelected Is Nothing, Settings.Get(Of String)("CacheAuthServerServer"), Settings.Get(Of String)("VersionServerAuthServer", Instance:=McInstanceSelected)) & "/sessionserver/session/minecraft/profile/"
+            Case "LittleSkin"
+                Url = LittleSkinSkinBaseUrl()
             Case Else
                 Throw New ArgumentException("皮肤地址种类无效：" & If(Type, "null"))
         End Select
@@ -1800,8 +1803,8 @@ OnLoaded:
             End Try
         End If
 
-        'Authlib-Injector 文件
-        If Settings.Get(Of Integer)("VersionServerLogin", Instance:=Instance) = 4 Then
+        'Authlib-Injector 文件（LittleSkin 登录同样使用注入器）
+        If McAuthlibInjectorRequired(Instance) Then
             Dim TargetFile = PathPure.Value & "authlib-injector.jar"
             Try
                 Logger.Info("开始获取 Authlib-Injector 下载信息")

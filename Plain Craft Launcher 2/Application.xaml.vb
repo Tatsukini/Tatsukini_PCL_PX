@@ -36,6 +36,12 @@ Public Class Application
                 Environment.SetEnvironmentVariable("windir", Environment.GetEnvironmentVariable("SystemRoot"), EnvironmentVariableTarget.User)
                 Dim _unused As New FormattedText("", Globalization.CultureInfo.CurrentCulture, FlowDirection.LeftToRight, Fonts.SystemTypefaces.First, 96, New MyColor, DPI)
             End Try
+            '应用自定义字体
+            Try
+                FontRefresh()
+            Catch ex As Exception
+                Logger.Warn(ex, "应用自定义字体失败")
+            End Try
             '检查参数调用
             If e.Args.Length > 0 Then
                 If e.Args(0) = "--update" Then
@@ -277,7 +283,7 @@ RetryCacheCheck:
                         FrmLoginNide.ComboName.ItemsSource = Dict.Keys
                         FrmLoginNide.ComboName.Text = If(Dict.Keys.Any, Dict.Keys(0), "")
                         FrmLoginNide.TextPass.Password = If(Dict.Values.Any, Dict.Values(0), "")
-                    Case "Auth"
+                    Case "Auth", "LittleSkin"
                         FrmLoginAuth.ComboName.ItemsSource = Dict.Keys
                         FrmLoginAuth.ComboName.Text = If(Dict.Keys.Any, Dict.Keys(0), "")
                         FrmLoginAuth.TextPass.Password = If(Dict.Values.Any, Dict.Values(0), "")

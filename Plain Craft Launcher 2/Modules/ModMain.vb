@@ -417,6 +417,7 @@ EndHint:
     Public FrmInstanceModDisabled As PageInstanceModDisabled
     Public FrmInstanceSetup As PageInstanceSetup
     Public FrmInstanceExport As PageInstanceExport
+    Public FrmInstanceSchematic As PageInstanceSchematic
     Public FrmDownloadModify As PageDownloadModify
 
     '资源信息分页声明
@@ -888,6 +889,8 @@ NextFile:
                     Text = Text.Replace("{login}", Replacer("统一通行证"))
                 Case McLoginType.Auth
                     Text = Text.Replace("{login}", Replacer("Authlib-Injector"))
+                Case McLoginType.LittleSkin
+                    Text = Text.Replace("{login}", Replacer("LittleSkin"))
             End Select
         Else
             Text = Text.Replace("{user}", Replacer(Nothing))

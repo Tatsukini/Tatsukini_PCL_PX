@@ -280,6 +280,27 @@
                         </StackPanel>
                     </StackPanel>
                 </local:MyCard>
+                <local:MyCard Margin="0,0,0,15" Title="轻量分享清单" x:Name="CardShareList">
+                    <StackPanel Margin="25,38,23,18">
+                        <TextBlock Opacity="0.6" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10"
+                                   Text="不打包任何文件，只把游戏版本、加载器、Mod 列表整理成一段文本，发给朋友自己下载。清单根据当前版本的文件夹内容生成。" />
+                        <Grid Height="35" Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="Button" />
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="Button" />
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="Button" />
+                                <ColumnDefinition Width="1*" />
+                            </Grid.ColumnDefinitions>
+                            <local:MyButton Grid.Column="0" x:Name="BtnShareGenerate" MinWidth="140" Text="生成清单" Padding="13,0" Margin="0,0,20,0" ColorType="Highlight" />
+                            <local:MyButton Grid.Column="1" x:Name="BtnShareCopy" MinWidth="140" Text="复制清单" Padding="13,0" Margin="0,0,20,0" />
+                            <local:MyButton Grid.Column="2" x:Name="BtnShareSave" MinWidth="140" Text="保存为文件" Padding="13,0" Margin="0,0,20,0" />
+                        </Grid>
+                        <TextBlock x:Name="LabShareStatus" Opacity="0.6" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,8" />
+                        <local:MyTextBox x:Name="TextShare" Height="180" IsReadOnly="True" IsUndoEnabled="False" MaxLength="65536"
+                                         AcceptsReturn="True" TextWrapping="Wrap" VerticalContentAlignment="Top" Padding="0,5"
+                                         VerticalScrollBarVisibility="Auto" Visibility="Collapsed" />
+                    </StackPanel>
+                </local:MyCard>
                 <local:MyCard Title="高级选项" Margin="0,0,0,15" CanSwap="True" IsSwapped="True">
                     <StackPanel Margin="25,37,23,20">
                         <local:MyHint Text="建议仅在无法稳定连接 CurseForge 或 Modrinth 时才打包资源文件。&#xa;请不要公开发布含资源文件的整合包，这会违反部分 Mod 的使用协议！"

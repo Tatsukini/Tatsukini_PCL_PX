@@ -4,7 +4,7 @@
 
 - **上游基线**：commit `6b9a50df911c9d68b69b24c979efba477fb14b67`（`2.99.0.0 正式版`，2026-10-20）
 - **本版本**：`PX beta0.0.1`（`VersionBaseName`，见 `Modules/Base/ModBase.vb:9`）
-- **规模**：修改既有文件 26 个（+1121 / −176 行），新增源文件 13 个，删除仓库文件 4 类
+- **规模**：首个提交（`5b879de` + `afda906`）修改既有文件 26 个（+1121 / −176 行）、新增源文件 13 个；第二次功能提交在此基础上再改 31 个文件、新增 5 个源文件与 1 个头像资源（+3857 / −126 行），累计新增功能 22 项；删除仓库文件 4 类
 - **未做**：不改上游许可、不做任何形式的收款、不做遥测、不劫持更新
 
 <br />
@@ -12,8 +12,9 @@
 ## 一、新增功能
 
 ### 1. 内存优化（更多 → 小工具）
-- 新增 `Modules/Base/ModMemoryOptimize.vb`（316 行）：调用 `EmptyWorkingSet` 整理指定进程的工作集，可选按模式（`MemoryOptimizeMode`）批量处理，以及「优化后关闭指定进程」（`MemoryOptimizeKillEnabled` / `MemoryOptimizeKill`）。
-- `Pages/PageOther/PageOtherTest.xaml` / `.xaml.vb`：新增「内存优化」卡片、进程列表（`PanMemoryProcList`）、模式选择（`ComboMemoryMode`）、信息栏（`LabMemoryInfo`）与「高级设置」子面板（`PanMemoryAdvanced`、`CheckMemoryKill`）。
+- 新增 `Modules/Base/ModMemoryOptimize.vb`：整理进程工作集（`SetProcessWorkingSetSizeEx`，等价 RAMMap 的 Empty Working Set）+ 可选「优化后关闭指定进程」（`MemoryOptimizeKillEnabled` / `MemoryOptimizeKill`）。
+- **优化方式由 2 种扩为 5 种**（`MemoryOptimizeMode`：自动 0 / 整理进程工作集 1 / 清理系统缓存 2 / 温和清理 3 / 深度清理 4），底层拆成可组合的 6 个原语：逐进程整理、`MemoryEmptyWorkingSets`、`MemoryPurgeStandbyList`、`MemoryPurgeLowPriorityStandbyList`、`MemoryFlushModifiedList`、`SystemCombinePhysicalMemoryInformation`（后五个走 `NtSetSystemInformation`，需管理员，缺权限时返回 `0xC0000022`）。**首选方式没有生效时自动改用另一种**，并在结果提示里标注「（已自动改用）」。
+- `Pages/PageOther/PageOtherTest.xaml` / `.xaml.vb`：新增「内存优化」卡片、进程列表（`PanMemoryProcList`）、方式选择（`ComboMemoryMode`，下拉项文本为 `[方式]（描述）` 格式，**顺序与枚举数值一一对应**）、信息栏（`LabMemoryInfo`）与「高级设置」子面板（`PanMemoryAdvanced`、`CheckMemoryKill`）。
 - `Pages/PageSetup/Settings.vb`：注册 3 个新设置项。
 
 ### 2. 一键生成服务端（更多 → 小工具）
@@ -107,6 +108,57 @@
 - `Modules/Minecraft/ModCrash.vb`：仅新增只读属性 `ModSuspectNames`，把分类为「Mod 问题」的崩溃原因里点名的文件/名称暴露给依赖图，未改动上游分析逻辑。
 - `Pages/PageSetup/Settings.vb`：新增注册表键 `ToolModGraphEnable`、`ToolModGraphAutoPopup`。
 
+### 15. 模组依赖图交互升级（更多 → 小工具）
+- `FrmModGraph.xaml` / `.xaml.vb`（+258 行）：节点卡片可用鼠标**拖动**并记住位置，**单击**某个 Mod 会突出显示与它相关的依赖 / 冲突路径（其余连线淡出），提供「重置位置」，画布按实际布局自动撑大；非模态窗口与重复进入的刷新逻辑保持原样。
+
+### 16. 实用网站（更多 → 小工具）
+- `Pages/PageOther/PageOtherTest.xaml` / `.xaml.vb`：新增「实用网站」卡片，8 条站点按「（按钮：网站名称）｜（域名）+（网站用途）」两行展示，全部为纯 XAML 的 `CustomEventService.EventType="打开网页"` 按钮（无代码后台），列表写死在 `BuildWebsiteList`。
+
+### 17. 下载源状态面板（更多 → 小工具）
+- `Pages/PageOther/PageOtherTest.xaml` / `.xaml.vb`：新增 16 个下载源的连通状态，每行 = 名称/域名 + 最近 40 次延迟竖条（等高，只按颜色分档：≤150ms 蓝 / ≤300ms 绿 / ≤600ms 黄 / 更慢或超时 红）+ `Enabled`/`Disabled` + `ping:xxxxms`，失败时额外给出 `ERROR Code` 与指向真实设置路径的「解决方案」一行。
+- 探测**刻意绕开 `NetRequestByClient`**：下载引擎共用的 HttpClient 带 CacheCow 磁盘缓存（`PathTemp\Cache\Http`），第二次采样会返回假的 ~0ms；面板使用自己的无缓存 HttpClient，但仍调用 `SecretHeadersSign`，因此 CurseForge 那一行真的会带上已保存的 Key（没配就是 403）。
+- `Pages/PageSetup/Settings.vb`：`ToolSourceStatusAuto`（每 5 秒自动探测，默认关闭，避免把 BMCLAPI 打成 429）。
+
+### 18. 预览原理图（版本设置 → 预览原理图）
+- 新增 `Modules/Minecraft/ModSchematic.vb`：手写 NBT 读取器（大端标量需 `Array.Reverse`，字符串 / ByteArray / IntArray / LongArray 不能整体反转）、Litematica **v5 与 v6** 两种位压缩写法（按「实际 Long 数量 + 索引落在调色板内」试出位宽）、Palette 还原、varint、旧数字 ID → 现代方块名映射、约 160 条方块配色、按面剔除的合并网格、内置示例结构；并新增 `CountSchematicStates`（按方块状态聚合数量）、`BuildSchematicListText`（TXT / CSV 两种文本）与 `CsvCell` 转义。
+- 新增 `Pages/PageInstance/PageInstanceSchematic.xaml` / `.xaml.vb`：用 **WPF 3D（`Viewport3D`）** 渲染，视角操作仿 Blender（中键旋转、Shift/Ctrl + 中键平移、滚轮以光标方块为锚点缩放、小键盘 1/3/7 前/右/顶、5 正交↔透视、0 强制透视、`.` 复位、右键选中方块）；工具栏「打开 / 示例 / 复位 / 清单 / 导出」、方块清单卡片（按数量降序、搜索过滤、汇总种数与实例数）、CSV / TXT 导出、快捷键 `F` `+` `-` `L` `Ctrl+F` `Ctrl+E` `Esc` 与帮助浮层。
+- `FormMain.xaml.vb`：`PageSubType.InstanceSchematic = 6`；`Pages/PageInstance/PageInstanceLeft.xaml`：新增导航项。
+- 只读用户文件，不写入版本目录；导出默认落在 `<版本隔离目录>\schematics\`。
+
+### 19. 整合包轻量分享清单（版本设置 → 导出整合包）
+- `Pages/PageInstance/PageInstanceExport.xaml` / `.xaml.vb`：新增「轻量分享清单」卡片，生成 / 复制 / 保存为 `.txt` 或 `.md`。内容为纯本地文本（整合包名称与版本、游戏版本、加载器、Java 要求、Mod / 资源包 / 光影包列表），每次点击都按当前版本文件夹实时读取，**不打包任何文件、不发起任何网络请求**。
+
+### 20. 自定义字体（设置 → 个性化 → 基础设置）
+- `Modules/ModSecret.vb`：新增「字体」Region——`FontFamilyDefault`（从 XAML 抓取）、`FontFamilyNow`、`FontFamilyDefaultCapture`、`FontRefresh()`（替换 `Application.Resources("FontFamilyGlobal")`）。
+- `Application.xaml`：抽出 `FontFamilyGlobal` 资源，4 处硬编码字体改为 `{DynamicResource FontFamilyGlobal}`（`FrmLiveLog`、`PageOtherLink` 的 Consolas 有意保持不变）；`Application.xaml.vb`：启动时调用 `FontRefresh()`。
+- `Pages/PageSetup/PageSetupUI.xaml` / `.xaml.vb`：「字体」下拉列出全部系统字体、每一项按自己的字体预览、支持「恢复默认」，已被卸载的字体不会让界面坏掉（自动补一条「（未安装）」）；`Pages/PageSetup/Settings.vb`：`UiFontFamily`。
+
+### 21. 启动中按 Esc 取消启动
+- `FormMain.xaml.vb`：Esc 处理里增加「启动过程中取消启动」，在主页 / 版本页 / 下载页等任意页面都能中断（原先只有进程页有取消按钮），非启动状态按下时给出提示而不报错。
+
+### 22. 设备码登录探测（第三方账户前置准备，更多 → 小工具）
+- 新增 `Modules/Minecraft/ModLoginDevice.vb`：通用 **RFC 8628** 设备码客户端——`DiscoverDeviceEndpoints`（两种 well-known 文档）、`ProbeDeviceEndpoints`（候选路径只看状态码）、`RequestDeviceCode`、`PollDeviceToken` / `ParseDeviceTokenError`（把 400 响应体里的 `authorization_pending` / `slow_down` / `expired_token` / `access_denied` 映射成状态）、`MaskToken` / `DescribeDeviceToken`、`SaveDeviceSession` / `ReadDeviceSession` / `ClearDeviceSession`。
+- `Pages/PageOther/PageOtherTest.xaml` / `.xaml.vb`：新增卡片（服务器 / client_id / scope 输入 + 探测端点、请求设备码、打开验证页、停止轮询、复制用户码、清除本机令牌 6 个按钮 + 用户码大字 + 只读日志）。
+- **隐私**：请求只发往用户自己填写的地址；设备码与令牌**不写日志**（日志里一律脱敏为前 6 后 4 + 长度），令牌只存本机加密设置 `LoginDeviceTokenJson`。
+- 这一项目前只是探测工具，**没有接进真正的登录链路**。
+
+### 23. LittleSkin 第三方登录（启动页 → 左侧登录方式）
+- `Modules/Minecraft/ModLaunch.vb`：`McLoginType` 新增 `LittleSkin = 6`；`McLoginName` / `McLoginAble` / `McLoginInput` / `McLoginStart` 全部接入，新增 `McLoginLittleSkinLoader` 与地址函数 `LittleSkinBaseUrl()`（`https://littleskin.cn/api/yggdrasil`）、`LittleSkinAuthUrl()`、`LittleSkinSkinBaseUrl()`、`LittleSkinRegisterUrl()`；密码错误登出与 403 提示与 Authlib-Injector 共用分支。
+- **登录必须靠 authlib-injector，界面之外还得补文件**：新增 `McAuthlibInjectorRequired(Instance)`（同时覆盖版本设置里的 `VersionServerLogin` 4/5 与启动页直接选择的情况），启动参数追加 `-javaagent:…\authlib-injector.jar=<服务器>`、`-Dauthlibinjector.side=client`、`-Dauthlibinjector.yggdrasil.prefetched=<GET 结果的 Base64>`；`Modules/Minecraft/ModMinecraft.vb` 的补全文件要求改为按该函数判断。
+- `Pages/PageLaunch/PageLoginAuth.xaml` / `.xaml.vb`、`PageLoginAuthSkin.xaml.vb`：这两个页面改为 Authlib-Injector 与 LittleSkin **共用**，通过 `PageLoginAuth.CurrentToken()` 决定读写哪一组缓存（标签在 LittleSkin 下显示「账号」，注册 / 忘记密码链接指向皮肤站）。**没有新增重复页面**。
+- `Pages/PageLaunch/PageLaunchLeft.xaml` / `.xaml.vb`：左侧新增 `RadioLoginType6`（正版 ｜ LittleSkin ｜ 离线），新增 `PageType.LittleSkin` / `LittleSkinSkin`（同一页面实例必须给不同 `PageType`，否则 `PageChange` 会跳过 `Reload`）、皮肤加载器 `SkinLittleSkin`；`Pages/PageInstance/PageInstanceSetup.xaml` 登录下拉新增「第三方登录：LittleSkin（固定地址）」（索引 5）。
+- `Controls/MyRadioButton.xaml.vb`：为共享控件新增 `LogoMargin` / `TextMargin` 两个属性（默认值与原 XAML 完全一致，不设置时其他界面零变化），用于在 300px 窄栏里收窄登录方式胶囊。
+- `Pages/PageSetup/Settings.vb`：`LittleSkinServer`（改动即作废旧令牌）+ `CacheLittleSkinAccess/Client/Uuid/Name/Username/Pass` + `LoginLittleSkinEmail/Pass`，**令牌与密码一律写注册表加密值**。
+- `Modules/ModMain.vb`：启动参数 `{login}` 在该方式下填「LittleSkin」；`Application.xaml.vb`：删除账号后的缓存刷新分支同步。
+
+### 24. 关于页开发者信息与仓库地址
+- `Pages/PageOther/PageOtherAbout.xaml`：关于卡片新增第 4 行——`Tatsukini` /「本PCL开源版本的开发者」，右侧「仓库地址」按钮指向 https://github.com/Tatsukini/Tatsukini_PCL_PX；新增圆形头像 `Images/Heads/Tatsukini.jpg`（128×128）并在 vbproj 注册为 `Resource`。**上游两条署名（龙腾猫跃、HerobrineXia）与「赞助 PCL !」按钮位置、内容均未改动。**
+
+### 25. CurseForge API Key 改为应用内配置
+- `Modules/ModSecret.vb`：`CurseForgeAPIKey` 优先读设置项 `ToolCurseForgeAPIKey`（注册表加密值），为空时回退环境变量 `PCL_CURSEFORGE_API_KEY`；`Pages/PageSetup/PageSetupSystem.xaml`（设置 → 其他 → 社区资源）新增输入框，填完立即生效、无需重启。
+- `Modules/Resource/ResourceSearcher.vb`：把「鉴权失败」与「连不上」拆成两条不同提示（原先所有失败都提示网络 / 代理，掩盖了 Key 缺失）。
+- 仓库里**不含任何 Key 值**，默认值为空字符串。
+
 <br />
 
 ## 二、更名为 PCL PX
@@ -151,7 +203,9 @@
 
 ## 四、待办 / 已知不足
 
-- **第三方登录（LittleSkin / Yggdrasil）** 尚未接入正版登录链路，目前只在皮肤下载里使用 LittleSkin。
+- **第三方登录**：已支持 LittleSkin（标准 Yggdrasil 账号密码 + authlib-injector，见一.23）与任意 Authlib-Injector 服务器；**设备码（RFC 8628）登录尚未接入**，一.22 的卡片只是探测工具——LittleSkin 是否真的开放设备码接口目前没有证据（本机对 `/.well-known/*`、`/oauth2/*` 的 GET 探测全部 404，而 GET 探测无法否定只支持 POST 的路由），故不下结论。
+- **LittleSkin 登录的多角色切换、注册入口、离线名称迁移**未做；`authlib-injector.jar` 依赖「补全文件」链路，若该文件缺失会在启动时报缺文件而不是静默降级。
+- **预览原理图**：多区域（Regions）只取第一个；大结构帧率与拾取精度未做性能调优。
 - **升级整合包**：加载器版本由本项目按规则自动换算，个别组合（例如跨年代的 Forge / OptiFine）可能匹配不到，向导会明确列出「需要自行安装」的组件；就地升级会把旧 json / jar 删除到回收站，不确定时请先选「保留备份」。
 - **模组图形化检查**：老式 Forge 模组（只有 `mcmod.info`，没有依赖声明）只能按文件名成节点，依赖关系可能为空；崩溃点名的模组靠名称匹配，不能保证百分百准确。
 - **硬件预警**只在启动流程开始前触发，游戏运行期间不再监测；CPU 占用取的是整机采样值。
@@ -165,4 +219,4 @@ git clone https://github.com/Meloong-Git/PCL -b main --single-branch --depth 1 P
 diff -r -x .git -x obj -x bin -x patches PCL-upstream Tatsukini_PCL_PX
 ```
 
-本仓库的首个提交即包含上述全部改动，未逐条拆分提交（改动是在本地开发中累积的）。如需按功能拆分的提交历史，请在 issue 中提出。
+改动按功能累积在本地开发，提交粒度为「一轮功能一批」：`5b879de`（更名 + 前 10 项）、`afda906`（启动音效 / 硬件预警 / 升级整合包向导 / 模组依赖图）、本次提交（一.15 ~ 一.25 与内存优化的方式扩展）。如需按功能拆分的提交历史，请在 issue 中提出。

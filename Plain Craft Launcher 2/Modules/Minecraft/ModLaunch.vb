@@ -310,6 +310,7 @@ NextInner:
         Nide = 2
         Auth = 3
         Ms = 5
+        LittleSkin = 6
     End Enum
 
     '各个登录方式的对应数据
@@ -338,7 +339,7 @@ NextInner:
         ''' </summary>
         Public BaseUrl As String
         ''' <summary>
-        ''' 登录所使用的标识符，目前只可能为 “Auth” 或 “Nide”，用于存储缓存等。
+        ''' 登录所使用的标识符，目前只可能为 “Auth”、“Nide” 或 “LittleSkin”，用于存储缓存等。
         ''' </summary>
         Public Token As String
         ''' <summary>
@@ -428,11 +429,14 @@ NextInner:
                 If Settings.Get(Of String)("CacheNideName") <> "" Then Return Settings.Get(Of String)("CacheNideName")
             Case McLoginType.Auth
                 If Settings.Get(Of String)("CacheAuthName") <> "" Then Return Settings.Get(Of String)("CacheAuthName")
+            Case McLoginType.LittleSkin
+                If Settings.Get(Of String)("CacheLittleSkinName") <> "" Then Return Settings.Get(Of String)("CacheLittleSkinName")
         End Select
         '查找所有可能的项
         If Settings.Get(Of String)("CacheMsV2Name") <> "" Then Return Settings.Get(Of String)("CacheMsV2Name")
         If Settings.Get(Of String)("CacheNideName") <> "" Then Return Settings.Get(Of String)("CacheNideName")
         If Settings.Get(Of String)("CacheAuthName") <> "" Then Return Settings.Get(Of String)("CacheAuthName")
+        If Settings.Get(Of String)("CacheLittleSkinName") <> "" Then Return Settings.Get(Of String)("CacheLittleSkinName")
         If Settings.Get(Of String)("LoginLegacyName") <> "" Then Return Settings.Get(Of String)("LoginLegacyName").ToString.BeforeFirst("¨")
         Return Nothing
     End Function
@@ -455,8 +459,9 @@ NextInner:
                 Else
                     Return ""
                 End If
-            Case McLoginType.Auth
-                If Settings.Get(Of String)("CacheAuthAccess") = "" Then
+            Case McLoginType.Auth, McLoginType.LittleSkin
+                Dim Token As String = PageLoginAuth.CurrentToken()
+                If Settings.Get(Of String)("Cache" & Token & "Access") = "" Then
                     Return FrmLoginAuth.IsVaild()
                 Else
                     Return ""
@@ -476,7 +481,7 @@ NextInner:
                 Return PageLoginLegacy.IsVaild(LoginData)
             Case McLoginType.Nide
                 Return PageLoginNide.IsVaild(LoginData)
-            Case McLoginType.Auth
+            Case McLoginType.Auth, McLoginType.LittleSkin
                 Return PageLoginAuth.IsVaild(LoginData)
             Case Else
                 Return "未知的登录方式"
@@ -511,6 +516,12 @@ NextInner:
                     Else
                         LoginData = PageLoginAuthSkin.GetLoginData()
                     End If
+                Case McLoginType.LittleSkin
+                    If Settings.Get(Of String)("CacheLittleSkinAccess") = "" Then
+                        LoginData = PageLoginAuth.GetLoginData()
+                    Else
+                        LoginData = PageLoginAuthSkin.GetLoginData()
+                    End If
             End Select
             Return LoginData
         Catch ex As Exception
@@ -533,6 +544,8 @@ NextInner:
                 Loader = McLoginNideLoader
             Case McLoginType.Auth
                 Loader = McLoginAuthLoader
+            Case McLoginType.LittleSkin
+                Loader = McLoginLittleSkinLoader
         End Select
         '尝试加载
         Loader.WaitForExit(Data.Input, McLoginLoader, Data.IsForceRestarting)
@@ -549,6 +562,35 @@ NextInner:
     Public McLoginLegacyLoader As New LoaderTask(Of McLoginLegacy, McLoginResult)("Loader Login Legacy", AddressOf McLoginLegacyStart)
     Public McLoginNideLoader As New LoaderTask(Of McLoginServer, McLoginResult)("Loader Login Nide", AddressOf McLoginServerStart) With {.ReloadTimeout = 1000 * 60 * 10}
     Public McLoginAuthLoader As New LoaderTask(Of McLoginServer, McLoginResult)("Loader Login Auth", AddressOf McLoginServerStart) With {.ReloadTimeout = 1000 * 60 * 10}
+    Public McLoginLittleSkinLoader As New LoaderTask(Of McLoginServer, McLoginResult)("Loader Login LittleSkin", AddressOf McLoginServerStart) With {.ReloadTimeout = 1000 * 60 * 10}
+
+    'LittleSkin 相关地址，设置项中存储的是皮肤站的根地址
+    Public Function LittleSkinBaseUrl() As String
+        Return Settings.Get(Of String)("LittleSkinServer").TrimEnd("/"c) & "/api/yggdrasil"
+    End Function
+    Public Function LittleSkinAuthUrl() As String
+        Return LittleSkinBaseUrl() & "/authserver"
+    End Function
+    Public Function LittleSkinSkinBaseUrl() As String
+        Return LittleSkinBaseUrl() & "/sessionserver/session/minecraft/profile/"
+    End Function
+    Public Function LittleSkinRegisterUrl() As String
+        Return Settings.Get(Of String)("LittleSkinServer").TrimEnd("/"c) & "/auth/register"
+    End Function
+    ''' <summary>
+    ''' 指定版本在启动时是否需要 Authlib-Injector 注入第三方验证。
+    ''' </summary>
+    Public Function McAuthlibInjectorRequired(Instance As McInstance) As Boolean
+        Select Case Settings.Get(Of Integer)("VersionServerLogin", Instance:=Instance)
+            Case 4, 5
+                Return True
+            Case 0, 1
+                '启动页上直接选择的 LittleSkin 登录方式不会修改版本设置，但同样需要注入器
+                Return Instance Is McInstanceSelected AndAlso Settings.Get(Of McLoginType)("LoginType") = McLoginType.LittleSkin
+            Case Else
+                Return False
+        End Select
+    End Function
 
     '主加载函数，返回所有需要的登录信息
     Private Sub McLoginMsStart(Data As LoaderTask(Of McLoginMs, McLoginResult))
@@ -855,7 +897,7 @@ LoginFinish:
                         '密码错误，退出登录 (#5090)
                         McLaunchLog("密码错误，退出登录")
                         Select Case Data.Input.Type
-                            Case McLoginType.Auth
+                            Case McLoginType.Auth, McLoginType.LittleSkin
                                 RunInUi(AddressOf PageLoginAuthSkin.ExitLogin)
                             Case McLoginType.Nide
                                 RunInUi(AddressOf PageLoginNideSkin.ExitLogin)
@@ -872,6 +914,11 @@ LoginFinish:
                                             " - 输入的账号或密码错误。" & vbCrLf &
                                             " - 登录尝试过于频繁，导致被暂时屏蔽。请不要操作，等待 10 分钟后再试。" & vbCrLf &
                                             " - 只注册了账号，但没有在皮肤站新建角色。")
+                    Case McLoginType.LittleSkin
+                        Throw New Exception("$登录失败，以下为可能的原因：" & vbCrLf &
+                                            " - 输入的账号或密码错误。" & vbCrLf &
+                                            " - 登录尝试过于频繁，导致被暂时屏蔽。请不要操作，等待 10 分钟后再试。" & vbCrLf &
+                                            " - 只在 LittleSkin 注册了账号，但没有在皮肤站中创建角色。")
                     Case McLoginType.Nide
                         Throw New Exception("$登录失败，以下为可能的原因：" & vbCrLf &
                                             " - 输入的账号或密码错误。" & vbCrLf &
@@ -1284,10 +1331,10 @@ NextInstance:
         If McLoginLoader.Output.Type = "Nide" Then
             Args.Add("-javaagent:""${pure_directory}\nide8auth.jar""=""" & Settings.Get(Of String)("VersionServerNide", Instance:=McInstanceSelected) & """")
         End If
-        'Authlib-Injector
-        If McLoginLoader.Output.Type = "Auth" Then
+        'Authlib-Injector / LittleSkin
+        If McLoginLoader.Output.Type = "Auth" OrElse McLoginLoader.Output.Type = "LittleSkin" Then
             If McLaunchJavaSelected.Version.Major >= 6 Then Args.Add("-Djavax.net.ssl.trustStoreType=WINDOWS-ROOT") '信任系统根证书（5252#）
-            Dim Server As String = Settings.Get(Of String)("VersionServerAuthServer", Instance:=McInstanceSelected)
+            Dim Server As String = If(McLoginLoader.Output.Type = "LittleSkin", LittleSkinBaseUrl(), Settings.Get(Of String)("VersionServerAuthServer", Instance:=McInstanceSelected))
             Try
                 McLaunchLog($"开始 Authlib Injector Prefetch")
                 Dim Response As String = NetRequestByClientRetry(Server, Encoding:=Encoding.UTF8)

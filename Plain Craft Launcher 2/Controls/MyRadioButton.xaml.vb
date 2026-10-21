@@ -29,6 +29,34 @@ Public Class MyRadioButton
         End Set
     End Property
 
+    Private _LogoMargin As Thickness = New Thickness(12, 0, 0, 0)
+    ''' <summary>
+    ''' 图标左侧留白，用于在窄栏里收窄胶囊。默认与 XAML 中的 12,0,0,0 一致。
+    ''' </summary>
+    Public Property LogoMargin As Thickness
+        Get
+            Return _LogoMargin
+        End Get
+        Set(value As Thickness)
+            _LogoMargin = value
+            If Not IsNothing(ShapeLogo) Then ShapeLogo.Margin = value
+        End Set
+    End Property
+
+    Private _TextMargin As Thickness = New Thickness(8, 0, 12, 0)
+    ''' <summary>
+    ''' 文字两侧留白，用于在窄栏里收窄胶囊。默认与 XAML 中的 8,0,12,0 一致。
+    ''' </summary>
+    Public Property TextMargin As Thickness
+        Get
+            Return _TextMargin
+        End Get
+        Set(value As Thickness)
+            _TextMargin = value
+            If Not IsNothing(LabText) Then LabText.Margin = value
+        End Set
+    End Property
+
     Private _Checked As Boolean = False '是否选中
     Public Property Checked As Boolean
         Get

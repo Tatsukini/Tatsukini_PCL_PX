@@ -39,5 +39,7 @@
                 </x:Array>
             </local:MyListItem.Buttons>
         </local:MyListItem>
+        <local:MyListItem x:Name="ItemSchematic" IsScaleAnimationEnabled="False" Type="RadioBox" Tag="6" MinPaddingRight="35" Height="36" VerticalAlignment="Top" Title="预览原理图" LogoScale="0.92"
+                          Logo="M512 110 L894 335 L512 560 L130 335 Z M138 372 L504 583 L504 902 L138 691 Z M520 583 L886 372 L886 691 L520 902 Z" />
     </StackPanel>
 </local:MyPageLeft>

@@ -109,7 +109,7 @@ Public Class PageLaunchLeft
 
         '改变页面
         Dim LoginType = Settings.Get(Of McLoginType)("LoginType")
-        If LoginType = McLoginType.Legacy OrElse LoginType = McLoginType.Ms Then CType(FindName("RadioLoginType" & LoginType), MyRadioButton).Checked = True
+        If LoginType = McLoginType.Legacy OrElse LoginType = McLoginType.Ms OrElse LoginType = McLoginType.LittleSkin Then CType(FindName("RadioLoginType" & LoginType), MyRadioButton).Checked = True
         RefreshPage(False, False)
 
         AniControlEnabled -= 1
@@ -131,6 +131,8 @@ Public Class PageLaunchLeft
                 LabLaunchingMethod.Text = "统一通行证"
             Case McLoginType.Auth
                 LabLaunchingMethod.Text = "Authlib-Injector"
+            Case McLoginType.LittleSkin
+                LabLaunchingMethod.Text = "LittleSkin"
         End Select
         '初始化页面
         LabLaunchingName.Text = McInstanceSelected.Name
@@ -198,6 +200,8 @@ Public Class PageLaunchLeft
         NideSkin
         Auth
         AuthSkin
+        LittleSkin
+        LittleSkinSkin
         Ms
         MsSkin
     End Enum
@@ -221,6 +225,13 @@ Public Class PageLaunchLeft
                 If IsNothing(FrmLoginAuth) Then FrmLoginAuth = New PageLoginAuth
                 Return FrmLoginAuth
             Case PageType.AuthSkin
+                If IsNothing(FrmLoginAuthSkin) Then FrmLoginAuthSkin = New PageLoginAuthSkin
+                Return FrmLoginAuthSkin
+            Case PageType.LittleSkin
+                '与 Authlib-Injector 共用同一个登录页面，由 PageLoginAuth.CurrentToken 决定所使用的登录方式
+                If IsNothing(FrmLoginAuth) Then FrmLoginAuth = New PageLoginAuth
+                Return FrmLoginAuth
+            Case PageType.LittleSkinSkin
                 If IsNothing(FrmLoginAuthSkin) Then FrmLoginAuthSkin = New PageLoginAuthSkin
                 Return FrmLoginAuthSkin
             Case PageType.Ms
@@ -300,9 +311,16 @@ Public Class PageLaunchLeft
             LoginPageType = Settings.Get(Of Integer)("LoginPageType")
         End If
         Select Case LoginPageType
-            Case 0 '正版或离线
+            Case 0 '正版、离线或 LittleSkin
 UnknownType:
-                If RadioLoginType5.Checked Then
+                If RadioLoginType6.Checked Then
+                    If Settings.Get(Of String)("CacheLittleSkinAccess") = "" Then
+                        Type = PageType.LittleSkin
+                    Else
+                        Type = PageType.LittleSkinSkin
+                    End If
+                    Settings.Set("LoginType", McLoginType.LittleSkin)
+                ElseIf RadioLoginType5.Checked Then
                     If Settings.Get(Of String)("CacheMsV2Access") = "" Then
                         Type = PageType.Ms
                     Else
@@ -316,6 +334,7 @@ UnknownType:
                 PanType.Visibility = Visibility.Visible
                 PanTypeOne.Visibility = Visibility.Collapsed
                 RadioLoginType5.Visibility = Visibility.Visible
+                RadioLoginType6.Visibility = Visibility.Visible
                 RadioLoginType0.Visibility = Visibility.Visible
             Case 1 '仅正版
                 If Settings.Get(Of String)("CacheMsV2Access") = "" Then
@@ -329,6 +348,7 @@ UnknownType:
                 PathTypeOne.Data = (New GeometryConverter).ConvertFromString(Logo.IconButtonShield)
                 LabTypeOne.Text = "正版登录"
                 RadioLoginType5.Visibility = Visibility.Visible
+                RadioLoginType6.Visibility = Visibility.Collapsed
                 RadioLoginType0.Visibility = Visibility.Collapsed
             Case 2 '仅离线
                 Type = PageType.Legacy
@@ -360,6 +380,17 @@ UnknownType:
                 PathTypeOne.Data = (New GeometryConverter).ConvertFromString(Logo.IconButtonCard)
                 LabTypeOne.Text = If(McInstanceSelected Is Nothing, Settings.Get(Of String)("CacheAuthServerName"), Settings.Get(Of String)("VersionServerAuthName", Instance:=McInstanceSelected))
                 If LabTypeOne.Text = "" Then LabTypeOne.Text = "第三方登录"
+            Case 5 'LittleSkin
+                If Settings.Get(Of String)("CacheLittleSkinAccess") = "" Then
+                    Type = PageType.LittleSkin
+                Else
+                    Type = PageType.LittleSkinSkin
+                End If
+                Settings.Set("LoginType", McLoginType.LittleSkin)
+                PanType.Visibility = Visibility.Collapsed
+                PanTypeOne.Visibility = Visibility.Visible
+                PathTypeOne.Data = (New GeometryConverter).ConvertFromString(Logo.IconButtonCard)
+                LabTypeOne.Text = "LittleSkin 登录"
             Case Else
                 Logger.Error($"未知的登录页面：{LoginPageType}", LogBehavior.Toast)
                 GoTo UnknownType
@@ -370,7 +401,7 @@ UnknownType:
         Dim Control As MyRadioButton = FindName("RadioLoginType" & Settings.Get(Of McLoginType)("LoginType"))
         If Control IsNot Nothing Then Control.Checked = True
     End Sub
-    Private Sub RadioLoginType_Change(sender As Object, raiseByMouse As Boolean) Handles RadioLoginType0.Check, RadioLoginType5.Check
+    Private Sub RadioLoginType_Change(sender As Object, raiseByMouse As Boolean) Handles RadioLoginType0.Check, RadioLoginType5.Check, RadioLoginType6.Check
         If raiseByMouse Then RefreshPage(True, True)
     End Sub
 
@@ -596,9 +627,57 @@ Finish:
         End If
     End Sub
 
+    'LittleSkin 皮肤
+    Public Shared SkinLittleSkin As New LoaderTask(Of (String, String), String)("Loader Skin LittleSkin", AddressOf SkinLittleSkinLoad, AddressOf SkinLittleSkinInput, ThreadPriority.AboveNormal)
+    Private Shared Function SkinLittleSkinInput() As (String, String)
+        '获取名称
+        Return (Settings.Get(Of String)("CacheLittleSkinName"), Settings.Get(Of String)("CacheLittleSkinUuid"))
+    End Function
+    Private Shared Sub SkinLittleSkinLoad(Data As LoaderTask(Of (String, String), String))
+        '清空已有皮肤
+        '如果在输入时清空皮肤，若输入内容一样则不会执行 Load 方法，导致皮肤不被加载
+        RunInUi(Sub() If FrmLoginAuthSkin IsNot Nothing AndAlso FrmLoginAuthSkin.Skin IsNot Nothing Then FrmLoginAuthSkin.Skin.Clear())
+        '获取 Url
+        Dim UserName As String = Data.Input.Item1
+        Dim UUID As String = Data.Input.Item2
+        If UserName = "" Then
+            Data.Output = PathImage & "Skins/Steve.png"
+            Logger.Info("获取 LittleSkin 皮肤失败，ID 为空")
+            GoTo Finish
+        End If
+        Try
+            Dim Result As String = McSkinGetAddress(UUID, "LittleSkin")
+            If Data.IsCanceled Then Throw New OperationCanceledException("当前任务已取消：" & UserName)
+            Result = McSkinDownload(Result)
+            If Data.IsCanceled Then Throw New OperationCanceledException("当前任务已取消：" & UserName)
+            Data.Output = Result
+        Catch ex As Exception
+            If ex.IsCanceled Then
+                Data.Output = ""
+                Return
+            ElseIf ex.GetDisplay(False).Contains("(429)") Then
+                Data.Output = PathImage & "Skins/" & McSkinSex(McLoginLegacyUuid(UserName)) & ".png"
+                Logger.Error($"获取 LittleSkin 皮肤失败（{UserName}）：获取皮肤太过频繁，请 5 分钟后再试！", LogBehavior.Toast)
+            ElseIf ex.GetDisplay(False).Contains("未设置自定义皮肤") Then
+                Data.Output = PathImage & "Skins/" & McSkinSex(McLoginLegacyUuid(UserName)) & ".png"
+                Logger.Info("用户未设置自定义皮肤，跳过皮肤加载")
+            Else
+                Data.Output = PathImage & "Skins/" & McSkinSex(McLoginLegacyUuid(UserName)) & ".png"
+                Logger.Error(ex, $"获取 LittleSkin 皮肤失败（{UserName}）", LogBehavior.Toast)
+            End If
+        End Try
+Finish:
+        '刷新显示
+        If FrmLoginAuthSkin IsNot Nothing Then
+            RunInUi(AddressOf FrmLoginAuthSkin.Skin.Load)
+        ElseIf Not Data.IsCanceled Then '如果已经中断，Input 也被清空，就不会再次刷新
+            Data.Input = Nothing '清空输入，因为皮肤实际上没有被渲染，如果不清空切换到页面的 Start 会由于输入相同而不渲染
+        End If
+    End Sub
+
     '全部皮肤加载器
     '需要放在其中元素的后面，否则会因为它提前被加载而莫名其妙变成 Nothing
-    Public Shared SkinLoaders As New List(Of LoaderTask(Of (String, String), String)) From {SkinMs, SkinLegacy, SkinNide, SkinAuth}
+    Public Shared SkinLoaders As New List(Of LoaderTask(Of (String, String), String)) From {SkinMs, SkinLegacy, SkinNide, SkinAuth, SkinLittleSkin}
 
 #End Region
 

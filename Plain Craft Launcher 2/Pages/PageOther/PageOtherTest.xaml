@@ -49,6 +49,75 @@
                         <local:MyHint Theme="Blue" Margin="0,18,0,0" Text="本功能只读取各个 jar 自带的 fabric.mod.json、quilt.mod.json、META-INF/mods.toml 与 mcmod.info，文件缺失时只能按文件名猜测。不少 Mod 会漏写或错写前置声明，因此结果只是启发式的参考，最终的报错原因仍以游戏日志为准。" />
                     </StackPanel>
                 </local:MyCard>
+
+                <local:MyCard Margin="0,15" Title="实用网站" CanSwap="True">
+                    <StackPanel Margin="21,45,21,18">
+                        <TextBlock Text="做地图、找 Mod、查资料常用的网站，点击按钮即可用浏览器打开。" FontSize="14" TextWrapping="Wrap" />
+                        <Grid x:Name="PanWebsiteList" Margin="0,14,0,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                        </Grid>
+                    </StackPanel>
+                </local:MyCard>
+
+                <local:MyCard Margin="0,15" Title="下载源状态" CanSwap="True">
+                    <StackPanel Margin="21,45,21,18">
+                        <TextBlock Text="逐个探测本启动器用到的下载源。竖条是最近若干次的延迟：蓝 ≤150ms，绿 ≤300ms，黄 ≤600ms，红超过 600ms 或超时。" FontSize="14" TextWrapping="Wrap" />
+                        <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                            <local:MyButton x:Name="BtnSourceRefresh" Text="立即探测" Height="34" MinWidth="110" ColorType="Highlight" />
+                            <local:MyButton x:Name="BtnSourceClear" Text="清空记录" Height="34" MinWidth="110" Margin="10,0,0,0" />
+                            <local:MyCheckBox x:Name="CheckSourceAuto" Height="22" Margin="16,0,0,0" Text="每 5 秒自动探测" local:SettingService.Key="ToolSourceStatusAuto" />
+                        </StackPanel>
+                        <TextBlock x:Name="LabSourceTip" Margin="0,12,0,0" TextWrapping="Wrap" Opacity="0.6" />
+                        <StackPanel x:Name="PanSourceList" Margin="0,8,0,0" />
+                        <local:MyHint Theme="Blue" Margin="0,14,0,0" Text="探测只发送一个很小的请求并计时，不会下载任何文件，结果只反映当前网络状况。某个源显示 Disabled 时，启动器会在别的源可用时自动换源；换源开关在 设置 → 其他 → 下载 与 社区资源。" />
+                    </StackPanel>
+                </local:MyCard>
+
+                <local:MyCard Margin="0,15" Title="设备码登录（第三方账户前置准备）" CanSwap="True">
+                    <StackPanel Margin="21,45,21,18">
+                        <TextBlock Text="标准 OAuth 2.0 设备码流程（RFC 8628）：启动器申请一个短码，你在手机或另一台设备的浏览器里输入短码并确认，启动器轮询拿到令牌，全程不需要在本机打开登录页。这张卡片用来实测 LittleSkin 等认证站到底开没开这套接口。" FontSize="14" TextWrapping="Wrap" />
+                        <Grid Margin="0,14,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="38" />
+                                <RowDefinition Height="38" />
+                                <RowDefinition Height="38" />
+                                <RowDefinition Height="38" />
+                                <RowDefinition Height="38" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="服务器" VerticalAlignment="Center" />
+                            <local:MyTextBox Grid.Row="0" Grid.Column="1" x:Name="TxtDeviceServer" Height="32" VerticalAlignment="Center" MaxLength="200" HintText="https://littleskin.cn" />
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="client_id" VerticalAlignment="Center" />
+                            <local:MyTextBox Grid.Row="1" Grid.Column="1" x:Name="TxtDeviceClientId" Height="32" VerticalAlignment="Center" MaxLength="200" HintText="在站点申请到的 OAuth 应用 ID，没有就先留空只探测端点" />
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="scope" VerticalAlignment="Center" />
+                            <local:MyTextBox Grid.Row="2" Grid.Column="1" x:Name="TxtDeviceScope" Height="32" VerticalAlignment="Center" MaxLength="200" HintText="offline_access" />
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="设备码端点" VerticalAlignment="Center" />
+                            <local:MyTextBox Grid.Row="3" Grid.Column="1" x:Name="TxtDeviceAuthUri" Height="32" VerticalAlignment="Center" MaxLength="300" HintText="留空则使用探测结果，也可手动填写后直接请求设备码" />
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="令牌端点" VerticalAlignment="Center" />
+                            <local:MyTextBox Grid.Row="4" Grid.Column="1" x:Name="TxtDeviceTokenUri" Height="32" VerticalAlignment="Center" MaxLength="300" HintText="留空则使用探测结果，也可手动填写" />
+                        </Grid>
+                        <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                            <local:MyButton x:Name="BtnDeviceProbe" Text="探测端点" Height="34" MinWidth="110" ColorType="Highlight" />
+                            <local:MyButton x:Name="BtnDeviceRequest" Text="请求设备码" Height="34" MinWidth="110" Margin="10,0,0,0" />
+                            <local:MyButton x:Name="BtnDeviceOpen" Text="打开验证页" Height="34" MinWidth="110" Margin="10,0,0,0" IsEnabled="False" />
+                            <local:MyButton x:Name="BtnDeviceCopy" Text="复制用户码" Height="34" MinWidth="110" Margin="10,0,0,0" IsEnabled="False" />
+                            <local:MyButton x:Name="BtnDeviceStop" Text="停止轮询" Height="34" MinWidth="110" Margin="10,0,0,0" IsEnabled="False" />
+                            <local:MyButton x:Name="BtnDeviceClear" Text="清除本机令牌" Height="34" MinWidth="120" Margin="10,0,0,0" />
+                        </StackPanel>
+                        <TextBlock x:Name="LabDeviceUser" Margin="0,14,0,0" FontSize="20" TextWrapping="Wrap" Visibility="Collapsed" />
+                        <local:MyTextBox x:Name="TextDeviceLog" Margin="0,12,0,0" Height="170" MaxLength="65536" AcceptsReturn="True"
+                                         IsReadOnly="True" IsUndoEnabled="False" TextWrapping="Wrap" VerticalContentAlignment="Top"
+                                         Padding="0,5" VerticalScrollBarVisibility="Auto" FontFamily="Consolas" />
+                        <local:MyHint Theme="Blue" Margin="0,14,0,0" Text="请求只发往你填写的服务器，用来确认接口是否存在。设备码与令牌都不会写入日志，只保存在本机加密设置里；跑通之后才会把它接进 启动 页的第三方账户登录。" />
+                    </StackPanel>
+                </local:MyCard>
             </StackPanel>
 
             <StackPanel x:Name="PanMemoryAdvanced" Visibility="Collapsed">
@@ -59,15 +128,17 @@
                                 <ColumnDefinition Width="110" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Text="首选逻辑" VerticalAlignment="Center" />
+                            <TextBlock Text="优化方式" VerticalAlignment="Center" />
                             <local:MyComboBox x:Name="ComboMemoryMode" Grid.Column="1" Height="32" VerticalAlignment="Center" HorizontalAlignment="Stretch">
-                                <local:MyComboBoxItem Content="自动（逐进程整理 + 系统内存列表清理）" IsSelected="True" />
-                                <local:MyComboBoxItem Content="逐进程整理工作集" />
-                                <local:MyComboBoxItem Content="系统内存列表清理（需要管理员）" />
+                                <local:MyComboBoxItem Content="自动（依次整理工作集、系统工作集与待机页面列表）" IsSelected="True" />
+                                <local:MyComboBoxItem Content="整理进程工作集（只把各进程暂不使用的内存页交还系统，最安全）" />
+                                <local:MyComboBoxItem Content="清理系统缓存（整理系统工作集并清空全部待机页面，需要管理员）" />
+                                <local:MyComboBoxItem Content="温和清理（整理工作集，只清空低优先级待机页面，保留常用缓存）" />
+                                <local:MyComboBoxItem Content="深度清理（工作集、已修改页写盘、待机页面、内存碎片全部处理）" />
                             </local:MyComboBox>
                         </Grid>
                         <TextBlock Margin="0,10,0,0" TextWrapping="Wrap"
-                                   Text="逐进程整理工作集：把各进程暂不使用的内存页交还系统，被整理的软件在下次使用时会短暂变慢。&#x0a;系统内存列表清理：与 RAMMap 的 Empty Working Sets / Empty Standby List 相同，会清空文件缓存的待机页，下次读取相关文件时改走硬盘。&#x0a;首选逻辑没有生效时会自动改用另一种。" />
+                                   Text="整理进程工作集：把各进程暂不使用的内存页交还系统，被整理的软件在下次使用时会短暂变慢。&#x0a;清理系统缓存：与 RAMMap 的 Empty Working Sets / Empty Standby List 相同，会清空文件缓存的待机页，下次读取相关文件时改走硬盘。&#x0a;温和清理：只释放优先级最低的待机页，游戏与常用软件的预读基本不受影响，适合在内存紧张但不想拖慢加载时使用。&#x0a;深度清理：额外把已修改但尚未保存的页面写回磁盘，并合并空闲内存页；机械硬盘上写盘会造成短暂卡顿。&#x0a;所选方式完全没有生效时，会自动改用最基本的两种手段。" />
                         <local:MyCheckBox x:Name="CheckMemoryKill" Height="22" Margin="0,16,0,0" Text="内存优化时同时关闭下列选中的进程" />
                         <TextBlock Margin="0,10,0,0" TextWrapping="Wrap"
                                    Text="关闭进程会导致其中未保存的内容丢失，请只选择你自己确实打算关闭的进程。此设置同样作用于启动游戏前的内存优化。" />

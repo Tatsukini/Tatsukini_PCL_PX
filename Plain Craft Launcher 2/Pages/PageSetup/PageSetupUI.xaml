@@ -111,6 +111,18 @@
                                             ColorType="Highlight" ToolTip="打开 龙腾猫跃 的爱发电赞助页面" />
                             <local:MyButton x:Name="BtnThemeCustomUnlock" Grid.Column="3" Text="我已赞助，解锁" MinWidth="120" Height="32" Padding="13,0" />
                         </Grid>
+                        <Grid x:Name="PanFont" Height="33" Margin="0,0,0,7">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="Name1" />
+                                <ColumnDefinition Width="1*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock VerticalAlignment="Center" HorizontalAlignment="Left" Text="字体" Margin="0,0,20,0" />
+                            <local:MyComboBox x:Name="ComboFont" Grid.Column="1" Height="32" VerticalAlignment="Center"
+                                              ToolTip="界面文字使用的字体。下拉列表里每一项都按自己的字体显示，自定义字体缺字时会自动回退到默认字体。" />
+                            <local:MyButton x:Name="BtnFontRestore" Grid.Column="2" Text="恢复默认" MinWidth="110" Height="32" Padding="13,0" Margin="10,0,0,0"
+                                            ToolTip="恢复为默认字体（微软雅黑 UI）" />
+                        </Grid>
                         <local:MyCheckBox local:SettingService.Key="UiLauncherLogo" Text="打开启动器时显示 PCL 图标" Margin="-1,0,0,1" Height="22" />
                     </StackPanel>
                 </Grid>

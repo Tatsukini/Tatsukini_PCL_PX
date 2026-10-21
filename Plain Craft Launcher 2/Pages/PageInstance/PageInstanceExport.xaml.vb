@@ -408,6 +408,124 @@ Public Class PageInstanceExport
 
 #End Region
 
+#Region "轻量分享清单"
+
+    Private Sub BtnShareGenerate_Click() Handles BtnShareGenerate.Click
+        ShareRefreshUI()
+        TextShare.ScrollToHome()
+        Hint("已生成分享清单。", HintType.Green, False)
+    End Sub
+    Private Sub BtnShareCopy_Click() Handles BtnShareCopy.Click
+        ClipboardSet(ShareRefreshUI())
+    End Sub
+    Private Sub BtnShareSave_Click() Handles BtnShareSave.Click
+        Dim ShareText = ShareRefreshUI()
+        Dim Instance = PageInstanceLeft.Instance
+        Dim PackName = If(String.IsNullOrEmpty(TextExportName.Text), TextExportName.HintText, TextExportName.Text)
+        Dim Address = Dialogs.SaveFile("保存分享清单", PackName & " 分享清单.txt", Instance.PathIndie, {("txt", "文本文件"), ("md", "Markdown 文件")})
+        If Address Is Nothing Then Return
+        Try
+            IO.File.WriteAllText(Address, ShareText, New UTF8Encoding(True))
+            Hint("已保存 " & IO.Path.GetFileName(Address), HintType.Green, False)
+        Catch ex As Exception
+            Logger.Error(ex, "保存分享清单失败：" & Address, LogBehavior.Alert)
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' 每次都重新读一遍文件夹，免得用户刚加了 Mod 却拿到旧清单。
+    ''' </summary>
+    Private Function ShareRefreshUI() As String
+        Dim ShareText = BuildShareList()
+        TextShare.Text = ShareText
+        TextShare.Visibility = Visibility.Visible
+        LabShareStatus.Text = ShareStatus
+        CardShareList.TriggerForceResize()
+        Return ShareText
+    End Function
+
+    Private ShareStatus As String = ""
+
+    Private Function BuildShareList() As String
+        Dim Instance = PageInstanceLeft.Instance
+        Dim PackName = If(String.IsNullOrEmpty(TextExportName.Text), TextExportName.HintText, TextExportName.Text)
+        Dim PackVersion = If(String.IsNullOrEmpty(TextExportVersion.Text), "1.0.0", TextExportVersion.Text)
+        Dim Mods = ListFolderNames("mods", {"*.jar", "*.litemod", "*.zip", "*.rar", "*.qmod"}, False)
+        Dim Disabled = ListFolderNames("mods", {"*.disabled", "*.old"}, False)
+        Dim ResourcePacks = ListFolderNames("resourcepacks", {"*.zip", "*.rar"}, True)
+        If Not ResourcePacks.Any Then ResourcePacks = ListFolderNames("texturepacks", {"*.zip", "*.rar"}, True)
+        Dim ShaderPacks = ListFolderNames("shaderpacks", {"*.zip", "*.rar"}, False)
+        '头部
+        Dim Builder As New StringBuilder
+        Builder.AppendLine($"{PackName}　{PackVersion}")
+        Builder.AppendLine("游戏版本：Minecraft " & Instance.Version.VanillaName)
+        Dim LoaderNames As New List(Of String)
+        For Each LoaderText In {LoaderName(ModLoaders.Fabric, "Fabric Loader"), LoaderName(ModLoaders.NeoForge, "NeoForge"),
+                                LoaderName(ModLoaders.Forge, "Forge"), LoaderName(ModLoaders.LiteLoader, "LiteLoader")}
+            If Not String.IsNullOrEmpty(LoaderText) Then LoaderNames.Add(LoaderText)
+        Next
+        If Instance.Version.HasOptiFine Then LoaderNames.Add("OptiFine " & Instance.Version.OptiFine.Replace("_", "-"))
+        If LoaderNames.Any Then Builder.AppendLine("加载器：" & String.Join(" · ", LoaderNames))
+        Dim JavaCode As Integer =
+            If(Instance.JsonObject?("javaVersion")?("majorVersion")?.ToObject(Of Integer),
+            If(Instance.JsonVersion?("java_version")?.ToObject(Of Integer), 0))
+        If JavaCode > 0 Then Builder.AppendLine("Java：Java " & JavaCode)
+        '列表
+        AddShareSection(Builder, "Mod", Mods)
+        AddShareSection(Builder, "已禁用的 Mod", Disabled)
+        AddShareSection(Builder, "资源包", ResourcePacks)
+        AddShareSection(Builder, "光影包", ShaderPacks)
+        Builder.AppendLine("下载方式：在 PCL 的 下载 → Mod 中搜索同名 Mod 的对应版本，或按文件名在 Modrinth、CurseForge 搜索。")
+        Builder.AppendLine("由 PCL PX 生成于 " & Date.Now.ToString("yyyy/M/d HH:mm"))
+        ShareStatus = $"共 {Mods.Count} 个 Mod" &
+            If(Disabled.Count > 0, $"、{Disabled.Count} 个已禁用", "") &
+            If(ResourcePacks.Count > 0, $"、{ResourcePacks.Count} 个资源包", "") &
+            If(ShaderPacks.Count > 0, $"、{ShaderPacks.Count} 个光影包", "") & "。"
+        Return Builder.ToString
+    End Function
+
+    ''' <summary>某个加载器的名称与版本；该版本没装它时返回空字符串。</summary>
+    Private Function LoaderName(Loader As ModLoaders, Title As String) As String
+        If Not PageInstanceLeft.Instance.Version.ModLoaders.HasFlagF(Loader) Then Return ""
+        Dim Value = PageInstanceLeft.Instance.Version.ModLoaderVersions(Loader)
+        Return Title & If(String.IsNullOrEmpty(Value) OrElse Value = "未知版本", "", " " & Value)
+    End Function
+
+    Private Sub AddShareSection(Builder As StringBuilder, Title As String, Names As List(Of String))
+        If Not Names.Any Then Return
+        Builder.AppendLine()
+        Builder.AppendLine($"{Title}（{Names.Count} 个）：")
+        For Each FileName In Names
+            Builder.AppendLine("- " & FileName)
+        Next
+    End Sub
+
+    ''' <summary>
+    ''' 列出版本文件夹下某个目录里的文件名，需要时连带子目录名。
+    ''' </summary>
+    Private Function ListFolderNames(Folder As String, Patterns As String(), AcceptFolders As Boolean) As List(Of String)
+        Dim Result As New List(Of String)
+        Try
+            Dim Info = DirectoryUtils.GetInfo(PageInstanceLeft.Instance.PathIndie & Folder)
+            If Not Info.Exists() Then Return Result
+            For Each Target In Info.EnumerateFiles("*", SearchOption.TopDirectoryOnly)
+                If Patterns.Any(Function(p) Target.Name Like p) Then Result.Add(Target.Name)
+            Next
+            If AcceptFolders Then
+                For Each Target In Info.EnumerateDirectories("*", SearchOption.TopDirectoryOnly)
+                    If SubOptionBlackList.Any(Function(b) Target.Name.Contains(b)) Then Continue For
+                    If Not Target.EnumerateFileSystemInfos().Any() Then Continue For
+                    Result.Add(Target.Name & "（文件夹）")
+                Next
+            End If
+        Catch ex As Exception
+            Logger.Warn(ex, "读取分享清单目录失败：" & Folder)
+        End Try
+        Return Result.OrderBy(Function(s) s, StringComparer.OrdinalIgnoreCase).ToList()
+    End Function
+
+#End Region
+
 #Region "导出"
 
     ''' <summary>

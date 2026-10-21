@@ -60,6 +60,7 @@
                             <RowDefinition Height="7" />
                             <RowDefinition Height="28" />
                             <RowDefinition Height="7" />
+                            <RowDefinition Height="28" />
                         </Grid.RowDefinitions>
                         <TextBlock Grid.Row="0" VerticalAlignment="Center" HorizontalAlignment="Left" Text="来源" Margin="0,0,25,0" />
                         <local:MyComboBox x:Name="ComboDownloadMod" Grid.Row="0" Grid.ColumnSpan="2" local:SettingService.Key="ToolDownloadMod" Grid.Column="1">
@@ -82,6 +83,10 @@
                             <local:MyComboBoxItem Content="标题显示译名，详情显示文件名" IsSelected="True" />
                             <local:MyComboBoxItem Content="标题显示文件名，详情显示译名" />
                         </local:MyComboBox>
+                        <TextBlock Grid.Row="6" VerticalAlignment="Center" HorizontalAlignment="Left" Text="CurseForge Key" Margin="0,0,25,0" />
+                        <local:MyTextBox Grid.Row="6" x:Name="TextCurseForgeAPIKey" Grid.ColumnSpan="2" Grid.Column="1"
+                                         local:SettingService.Key="ToolCurseForgeAPIKey" MaxLength="100" HintText="留空则无法从 CurseForge 官方源搜索"
+                                         ToolTip="在 https://console.curseforge.com/ 免费申请 API Key，粘贴到此处即可，填写后立即生效。&#xa;仅在 来源 选择官方源时需要它；使用镜像源时无需填写。&#xa;该 Key 只保存在本机注册表中，不会上传。" />
                     </Grid>
                 </StackPanel>
             </local:MyCard>

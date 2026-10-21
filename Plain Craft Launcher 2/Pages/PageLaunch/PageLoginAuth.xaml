@@ -16,7 +16,7 @@
         <ColumnDefinition Width="224" />
     </Grid.ColumnDefinitions>
     <local:MyComboBox Grid.Row="0" Grid.Column="1" IsEditable="True" Height="28" x:Name="ComboName" />
-    <TextBlock Text="邮箱" Grid.Row="0" VerticalAlignment="Center" />
+    <TextBlock x:Name="LabEmail" Text="邮箱" Grid.Row="0" VerticalAlignment="Center" />
     <PasswordBox Grid.Row="2" Grid.Column="1" x:Name="TextPass" />
     <TextBlock Text="密码" Grid.Row="2" VerticalAlignment="Center" />
     <local:MyCheckBox x:Name="CheckRemember" Tag="LoginRemember" Height="20" Margin="-1,12,80,0" Text="记住密码" Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" />

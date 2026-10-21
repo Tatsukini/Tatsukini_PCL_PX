@@ -8,8 +8,19 @@ Friend Module ModSecret
     Public Const RegFolder As String = "PCLDebug"
     '用于微软登录的 ClientId
     Public OAuthClientId As String = If(Environment.GetEnvironmentVariable("PCL_MS_CLIENT_ID"), "")
-    'CurseForge API Key
-    Public CurseForgeAPIKey As String = If(Environment.GetEnvironmentVariable("PCL_CURSEFORGE_API_KEY"), "")
+    'CurseForge API Key：优先使用 设置 → 其他 → 社区资源 中填写的值，其次才回退到环境变量
+    '（环境变量只在进程启动时被继承一次，从启动器、旧资源管理器等处再次启动 PCL 时可能读不到）
+    Public ReadOnly Property CurseForgeAPIKey As String
+        Get
+            Try
+                Dim Local = Settings.Get(Of String)("ToolCurseForgeAPIKey")
+                If Local IsNot Nothing AndAlso Local.Trim() <> "" Then Return Local.Trim()
+            Catch ex As Exception
+                Logger.Warn(ex, "读取 CurseForge API Key 设置失败")
+            End Try
+            Return If(Environment.GetEnvironmentVariable("PCL_CURSEFORGE_API_KEY"), "").Trim()
+        End Get
+    End Property
     '用于匿名数据收集的腾讯云日志服务上报 URL，形如 https://{region}.cls.tencentcs.com/track?topic_id={topic_id}
     Public Const ClsBaseUrl As String = ""
 
@@ -35,7 +46,7 @@ Friend Module ModSecret
             End If
         End If
         If Not SimulateBrowserHeaders Then Req.Headers.Add("Referer", $"http://{VersionCode}.open.pcl2.server/")
-        If Url.Contains("api.curseforge.com") OrElse Url.Contains("forgecdn.net") Then Req.Headers.Add("x-api-key", CurseForgeAPIKey)
+        If (Url.Contains("api.curseforge.com") OrElse Url.Contains("forgecdn.net")) AndAlso CurseForgeAPIKey <> "" Then Req.Headers.Add("x-api-key", CurseForgeAPIKey)
     End Sub
 
 #End Region
@@ -219,6 +230,41 @@ Friend Module ModSecret
         End Select
         Return UnlockResult
     End Function
+
+#End Region
+
+#Region "字体"
+
+    ''' <summary>
+    ''' XAML 里声明的默认字体，启动时抓取一次，供恢复默认使用。
+    ''' 必须由 XAML 解析出来的对象承担，自己 new 会丢掉内嵌字体的相对地址。
+    ''' </summary>
+    Public FontFamilyDefault As FontFamily = Nothing
+    ''' <summary>当前生效的字体，供需要预览的地方直接复用。</summary>
+    Public FontFamilyNow As FontFamily = Nothing
+    ''' <summary>代码里拼回退链时只能用绝对地址，默认的相对写法脱离 XAML 上下文会解析不到内嵌字体。</summary>
+    Private Const FontFamilyFallback As String = "pack://application:,,,/Resources/#PCL English, Microsoft YaHei UI"
+
+    Public Sub FontFamilyDefaultCapture()
+        If FontFamilyDefault IsNot Nothing Then Return
+        FontFamilyDefault = TryCast(Application.Current.Resources("FontFamilyGlobal"), FontFamily)
+        If FontFamilyNow Is Nothing Then FontFamilyNow = FontFamilyDefault
+    End Sub
+
+    ''' <summary>
+    ''' 按 UiFontFamily 设置替换全局字体。自定义字体缺字时会自动回退到默认字体。
+    ''' </summary>
+    Public Sub FontRefresh()
+        Try
+            FontFamilyDefaultCapture()
+            If FontFamilyDefault Is Nothing Then Return
+            Dim Name = Settings.Get(Of String)("UiFontFamily")
+            Dim Target = If(String.IsNullOrEmpty(Name), FontFamilyDefault, New FontFamily(Name & ", " & FontFamilyFallback))
+            Application.Current.Resources("FontFamilyGlobal") = Target
+        Catch ex As Exception
+            Logger.Error(ex, "刷新字体失败", LogBehavior.Toast)
+        End Try
+    End Sub
 
 #End Region
 

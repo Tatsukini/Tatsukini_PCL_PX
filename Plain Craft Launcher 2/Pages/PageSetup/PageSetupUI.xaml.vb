@@ -18,6 +18,7 @@ Public Class PageSetupUI
         End If
 
         AniControlEnabled += 1
+        If ComboFont.Items.Count = 0 Then FontListLoad()
         Refresh() '#4826
         AniControlEnabled -= 1
 
@@ -35,6 +36,7 @@ Public Class PageSetupUI
             BackgroundRefresh(False, False)
             VideoRefreshUI()
             ThemeCustomRefresh()
+            FontRefreshUI()
 
             '标题栏
             CheckLogoLeft.Visibility = If(RadioLogoType0.Checked, Visibility.Visible, Visibility.Collapsed)
@@ -511,6 +513,67 @@ Refresh:
         If AniControlEnabled <> 0 OrElse SliderLauncherSat Is Nothing OrElse Not SliderLauncherSat.IsLoaded Then Return
         ThemeRefresh()
     End Sub
+
+#Region "自定义字体"
+
+    Private Sub ComboFont_SelectionChanged(sender As Object, e As SelectionChangedEventArgs) Handles ComboFont.SelectionChanged
+        If AniControlEnabled <> 0 OrElse Not IsLoaded Then Return
+        Dim Item = TryCast(ComboFont.SelectedItem, MyComboBoxItem)
+        If Item Is Nothing Then Return
+        FontApplyIfChanged(CType(Item.Tag, String))
+    End Sub
+    Private Sub BtnFontRestore_Click() Handles BtnFontRestore.Click
+        FontApplyIfChanged("")
+    End Sub
+
+    Private Sub FontListLoad()
+        Try
+            ComboFont.Items.Add(New MyComboBoxItem With {.Content = "默认（微软雅黑 UI）", .Tag = ""})
+            Dim Names = Fonts.SystemFontFamilies.Select(Function(f) f.Source).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(Function(s) s, StringComparer.OrdinalIgnoreCase).ToList
+            For Each FamilyName In Names
+                Dim FontItem As New MyComboBoxItem With {.Content = FamilyName, .Tag = FamilyName}
+                Try
+                    FontItem.FontFamily = New FontFamily(FamilyName)
+                Catch ex As Exception
+                    Logger.Warn(ex, "生成字体预览失败：" & FamilyName)
+                End Try
+                ComboFont.Items.Add(FontItem)
+            Next
+        Catch ex As Exception
+            Logger.Error(ex, "加载系统字体列表失败")
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' 把下拉框选到当前设置对应的字体上；设置里的字体已经卸载时补一个标记项，免得看着像没生效。
+    ''' </summary>
+    Public Sub FontRefreshUI()
+        If IsNothing(ComboFont) OrElse ComboFont.Items.Count = 0 Then Return
+        Dim Current = Settings.Get(Of String)("UiFontFamily")
+        Dim Index = 0
+        For i = 1 To ComboFont.Items.Count - 1
+            If String.Equals(CType(ComboFont.Items(i), MyComboBoxItem).Tag, Current, StringComparison.OrdinalIgnoreCase) Then
+                Index = i
+                Exit For
+            End If
+        Next
+        If Index = 0 AndAlso Current <> "" Then
+            ComboFont.Items.Add(New MyComboBoxItem With {.Content = Current & "（未安装）", .Tag = Current})
+            Index = ComboFont.Items.Count - 1
+        End If
+        ComboFont.SelectedIndex = Index
+        If FontFamilyNow IsNot Nothing Then ComboFont.FontFamily = FontFamilyNow
+        BtnFontRestore.IsEnabled = Current <> ""
+    End Sub
+
+    Private Sub FontApplyIfChanged(FontName As String)
+        If Settings.Get(Of String)("UiFontFamily") = FontName Then Return
+        Settings.Set("UiFontFamily", FontName) 'OnChanged 里会调用 FontRefresh，全局字体立刻跟着变
+        FontRefreshUI()
+        Hint(If(FontName = "", "已恢复默认字体。", "已切换字体：" & FontName), HintType.Green, False)
+    End Sub
+
+#End Region
 
 #Region "功能隐藏"
 
